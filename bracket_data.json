@@ -10,31 +10,31 @@
   "standings": [
     {
       "name": "Megan",
-      "score": 20
+      "score": 21
     },
     {
       "name": "Mom",
-      "score": 18
+      "score": 19
     },
     {
       "name": "Jared",
+      "score": 19
+    },
+    {
+      "name": "Dad",
+      "score": 18
+    },
+    {
+      "name": "Lauren",
       "score": 18
     },
     {
       "name": "Gavin",
-      "score": 17
-    },
-    {
-      "name": "Dad",
-      "score": 16
-    },
-    {
-      "name": "Lauren",
-      "score": 16
+      "score": 18
     },
     {
       "name": "Molly",
-      "score": 15
+      "score": 17
     }
   ],
   "master": {
@@ -258,7 +258,8 @@
             "High Point",
             "Arkansas",
             "TX/NC State",
-            "Gonzaga"
+            "Gonzaga",
+            "Utah State"
           ],
           "Sweet 16": [],
           "Elite 8": [],
@@ -490,7 +491,8 @@
             "Kentucky",
             "Iowa State",
             "Virginia",
-            "Alabama"
+            "Alabama",
+            "Tennessee"
           ],
           "Sweet 16": [],
           "Elite 8": [],
@@ -506,7 +508,7 @@
       "id": "dad",
       "name": "Dad",
       "tiebreaker": "62 - 58",
-      "score": 16,
+      "score": 18,
       "regions": [
         {
           "matchups": [
@@ -1030,7 +1032,7 @@
       "id": "mom",
       "name": "Mom",
       "tiebreaker": "62 - 51",
-      "score": 18,
+      "score": 19,
       "regions": [
         {
           "matchups": [
@@ -1554,7 +1556,7 @@
       "id": "jared",
       "name": "Jared",
       "tiebreaker": "80-75",
-      "score": 18,
+      "score": 19,
       "regions": [
         {
           "matchups": [
@@ -2078,7 +2080,7 @@
       "id": "megan",
       "name": "Megan",
       "tiebreaker": "82-74",
-      "score": 20,
+      "score": 21,
       "regions": [
         {
           "matchups": [
@@ -2602,7 +2604,7 @@
       "id": "lauren",
       "name": "Lauren",
       "tiebreaker": "85 - 78",
-      "score": 16,
+      "score": 18,
       "regions": [
         {
           "matchups": [
@@ -3126,7 +3128,7 @@
       "id": "gavin",
       "name": "Gavin",
       "tiebreaker": "82-74",
-      "score": 17,
+      "score": 18,
       "regions": [
         {
           "matchups": [
@@ -3650,7 +3652,7 @@
       "id": "molly",
       "name": "Molly",
       "tiebreaker": "82-67",
-      "score": 15,
+      "score": 17,
       "regions": [
         {
           "matchups": [
