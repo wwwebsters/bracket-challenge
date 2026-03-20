@@ -1,0 +1,59 @@
+name: Update NCAA Bracket Scores
+
+on:
+  schedule:
+    # Run every hour from 11 AM to 1 AM ET during tournament
+    # (UTC is ET + 4 during EDT)
+    - cron: '0 * * 3,4 *'  # Every hour in March and April
+  workflow_dispatch:  # Allow manual trigger
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  update-scores:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Fetch and update scores
+        run: python update_scores.py
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add bracket_data.json
+          git diff --staged --quiet || (git commit -m "Auto-update scores $(date -u '+%Y-%m-%d %H:%M UTC')" && git push)
+
+  deploy:
+    needs: update-scores
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

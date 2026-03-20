@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webster Family Bracket Challenge 2026</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Password Gate -->
+    <div id="password-gate">
+        <div class="gate-container">
+            <div class="gate-logo">
+                <div class="basketball-icon">&#127936;</div>
+                <h1>WEBSTER FAMILY</h1>
+                <h2>BRACKET CHALLENGE</h2>
+                <div class="year">2026</div>
+            </div>
+            <form id="password-form">
+                <input type="password" id="password-input" placeholder="Enter password" autocomplete="off">
+                <button type="submit">Enter</button>
+                <p id="password-error" class="hidden">Incorrect password. Try again.</p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="app" class="hidden">
+        <!-- Header -->
+        <header>
+            <div class="header-inner">
+                <div class="header-left">
+                    <span class="header-icon">&#127936;</span>
+                    <div>
+                        <h1>WEBSTER FAMILY BRACKET CHALLENGE</h1>
+                        <p class="subtitle">NCAA Men's Basketball Tournament 2026</p>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <span id="last-updated"></span>
+                    <button id="refresh-btn" title="Refresh scores">&#8635;</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation -->
+        <nav>
+            <button class="nav-btn active" data-view="leaderboard">&#127942; Leaderboard</button>
+            <button class="nav-btn" data-view="brackets">&#128203; Brackets</button>
+            <button class="nav-btn" data-view="matchups">&#9917; Today's Games</button>
+        </nav>
+
+        <!-- Leaderboard View -->
+        <main id="view-leaderboard" class="view active">
+            <div class="leaderboard-container">
+                <div class="leaderboard-header">
+                    <h2>&#127942; STANDINGS</h2>
+                    <div class="scoring-info">
+                        <span class="scoring-badge">R32: 1pt</span>
+                        <span class="scoring-badge">S16: 2pts</span>
+                        <span class="scoring-badge">E8: 3pts</span>
+                        <span class="scoring-badge">F4: 4pts</span>
+                        <span class="scoring-badge">Finals: 5pts</span>
+                        <span class="scoring-badge champ">Champ: 6pts</span>
+                    </div>
+                </div>
+                <div id="leaderboard-cards"></div>
+                <div id="leaderboard-table-wrap">
+                    <table id="leaderboard-table">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Player</th>
+                                <th>Score</th>
+                                <th>R32</th>
+                                <th>S16</th>
+                                <th>E8</th>
+                                <th>F4</th>
+                                <th>Finals</th>
+                                <th>Champ</th>
+                                <th>Max Possible</th>
+                                <th>Tiebreaker</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboard-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+
+        <!-- Brackets View -->
+        <main id="view-brackets" class="view">
+            <div class="brackets-container">
+                <div class="bracket-selector">
+                    <label>Select Player:</label>
+                    <select id="player-select"></select>
+                </div>
+                <div id="bracket-display"></div>
+            </div>
+        </main>
+
+        <!-- Today's Games View -->
+        <main id="view-matchups" class="view">
+            <div class="matchups-container">
+                <h2>&#9917; Live Scores & Recent Results</h2>
+                <div id="games-list">
+                    <p class="loading">Loading game data...</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <footer id="app-footer" class="hidden">
+        <p>Webster Family Bracket Challenge 2026 &bull; Auto-updates hourly during game days</p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
