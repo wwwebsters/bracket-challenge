@@ -10,31 +10,31 @@
   "standings": [
     {
       "name": "Megan",
-      "score": 29
+      "score": 31
     },
     {
       "name": "Dad",
-      "score": 28
+      "score": 30
+    },
+    {
+      "name": "Jared",
+      "score": 30
+    },
+    {
+      "name": "Lauren",
+      "score": 30
+    },
+    {
+      "name": "Gavin",
+      "score": 30
+    },
+    {
+      "name": "Molly",
+      "score": 29
     },
     {
       "name": "Mom",
       "score": 28
-    },
-    {
-      "name": "Jared",
-      "score": 28
-    },
-    {
-      "name": "Lauren",
-      "score": 28
-    },
-    {
-      "name": "Gavin",
-      "score": 28
-    },
-    {
-      "name": "Molly",
-      "score": 27
     }
   ],
   "master": {
@@ -149,7 +149,9 @@
             "St. John's",
             "UCLA"
           ],
-          "Sweet 16": [],
+          "Sweet 16": [
+            "Michigan State"
+          ],
           "Elite 8": [],
           "Final Four": [],
           "Finalist": [],
@@ -518,7 +520,7 @@
       "id": "dad",
       "name": "Dad",
       "tiebreaker": "62 - 58",
-      "score": 28,
+      "score": 30,
       "regions": [
         {
           "matchups": [
@@ -1566,7 +1568,7 @@
       "id": "jared",
       "name": "Jared",
       "tiebreaker": "80-75",
-      "score": 28,
+      "score": 30,
       "regions": [
         {
           "matchups": [
@@ -2090,7 +2092,7 @@
       "id": "megan",
       "name": "Megan",
       "tiebreaker": "82-74",
-      "score": 29,
+      "score": 31,
       "regions": [
         {
           "matchups": [
@@ -2614,7 +2616,7 @@
       "id": "lauren",
       "name": "Lauren",
       "tiebreaker": "85 - 78",
-      "score": 28,
+      "score": 30,
       "regions": [
         {
           "matchups": [
@@ -3138,7 +3140,7 @@
       "id": "gavin",
       "name": "Gavin",
       "tiebreaker": "82-74",
-      "score": 28,
+      "score": 30,
       "regions": [
         {
           "matchups": [
@@ -3662,7 +3664,7 @@
       "id": "molly",
       "name": "Molly",
       "tiebreaker": "82-67",
-      "score": 27,
+      "score": 29,
       "regions": [
         {
           "matchups": [
