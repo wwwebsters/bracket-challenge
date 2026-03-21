@@ -73,25 +73,50 @@ def fetch_json(url):
 def normalize_team_name(name):
     return name.lower().strip().replace("\u2019", "'").replace("\u2018", "'")
 
-def word_boundary_match(needle, haystack):
-    """Check if needle appears as a whole word/phrase in haystack (not as substring of another word)."""
-    import re
-    pattern = r'(?:^|\b)' + re.escape(needle) + r'(?:\b|$)'
-    return bool(re.search(pattern, haystack))
-
 def espn_name_matches(espn_name, our_name):
     espn_lower = normalize_team_name(espn_name)
     our_lower = normalize_team_name(our_name)
-    if espn_lower == our_lower:
+    # Strip common ESPN suffixes for comparison
+    espn_base = espn_lower
+    for suffix in [" wildcats", " bulldogs", " volunteers", " cavaliers", " crimson tide",
+                   " red raiders", " cyclones", " wolverines", " spartans", " blue devils",
+                   " jayhawks", " bruins", " huskies", " cardinals", " horned frogs",
+                   " billikens", " cougars", " fighting illini", " cornhuskers",
+                   " razorbacks", " panthers", " commodores", " rams", " longhorns",
+                   " aggies", " saints", " owls", " cowboys", " trojans", " quakers",
+                   " vandals", " paladins", " lancers", " knights", " tigers",
+                   " zips", " pride", " raiders", " broncos", " gaels", " gators",
+                   " boilermakers", " red storm", " hurricanes", " hawks", " royals",
+                   " rainbow warriors", " sharks", " retrievers", " bison", " redhawks",
+                   " mountain hawks", " buckeyes", " hawkeyes", " bears", " rebels", " golden eagles",
+                   " miners", " seminoles", " orange", " hoosiers", " badgers",
+                   " terrapins", " mountaineers", " ducks", " beavers", " sun devils",
+                   " golden gophers", " scarlet knights", " nittany lions", " tar heels",
+                   " demon deacons", " yellow jackets", " hokies"]:
+        if espn_base.endswith(suffix):
+            espn_base = espn_base[:-len(suffix)]
+            break
+
+    # Exact match on base name
+    if espn_base == our_lower or espn_lower == our_lower:
         return True
-    # Use word-boundary matching to avoid "kansas" matching "arkansas"
-    if word_boundary_match(our_lower, espn_lower) or word_boundary_match(espn_lower, our_lower):
-        return True
+
+    # Check aliases (most reliable)
     aliases = TEAM_NAME_MAP.get(our_lower, [])
     for alias in aliases:
         a = normalize_team_name(alias)
-        if a == espn_lower or word_boundary_match(a, espn_lower) or word_boundary_match(espn_lower, a):
+        if a == espn_lower or a == espn_base:
             return True
+
+    # Exact match: our name IS the ESPN base (e.g. "duke" == "duke")
+    if our_lower == espn_base:
+        return True
+
+    # Only allow substring if our_lower has 2+ words and matches the START of espn_base
+    # This handles "iowa state" matching "iowa state" but NOT "iowa" matching "iowa state"
+    if len(our_lower.split()) >= 2 and espn_base.startswith(our_lower):
+        return True
+
     return False
 
 def get_tournament_dates():
