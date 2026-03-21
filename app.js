@@ -143,36 +143,42 @@ function updateTimestamp() {
 function buildNotification() {
     const master = bracketData.master;
     const participants = bracketData.participants;
+    const roundKeys = ["Round of 32", "Sweet 16", "Elite 8", "Final Four", "Finalist", "Champion"];
+    const roundPoints = [1, 2, 3, 4, 5, 6];
 
-    // Find the most recent completed game
-    let latestGame = null;
+    // Find the latest round with results
+    let latestWinner = null;
+    let latestRoundKey = null;
+    let latestRoundIdx = -1;
     for (const region of master.regions) {
-        const r32Winners = region.round_winners["Round of 32"] || [];
-        for (let i = 0; i < region.matchups.length; i++) {
-            const matchup = region.matchups[i];
-            const winner = r32Winners.find(w =>
-                w.toLowerCase().trim() === matchup[0].name.toLowerCase().trim() ||
-                w.toLowerCase().trim() === matchup[1].name.toLowerCase().trim()
-            );
-            if (winner) {
-                latestGame = { winner, region: region.name, matchup };
+        for (let ri = roundKeys.length - 1; ri >= 0; ri--) {
+            const winners = region.round_winners[roundKeys[ri]] || [];
+            if (winners.length > 0) {
+                if (ri > latestRoundIdx) {
+                    latestRoundIdx = ri;
+                    latestWinner = winners[winners.length - 1];
+                    latestRoundKey = roundKeys[ri];
+                }
             }
         }
     }
 
-    if (!latestGame) return;
+    if (!latestWinner || !latestRoundKey) return;
 
-    // Find who picked the winner
+    const regionName = getRegionForTeam(latestWinner);
+    const pts = roundPoints[latestRoundIdx] || 1;
+
+    // Find who picked the winner for this round
     const whoGotIt = [];
     for (const p of participants) {
-        const pRegion = p.regions.find(r => r.name === latestGame.region);
+        const pRegion = p.regions.find(r => r.name === regionName);
         if (!pRegion) continue;
-        const picks = pRegion.round_winners["Round of 32"] || [];
-        const picked = picks.find(pk => pk.toLowerCase().trim() === latestGame.winner.toLowerCase().trim());
-        if (picked) whoGotIt.push(p.name + " +1");
+        const picks = pRegion.round_winners[latestRoundKey] || [];
+        const picked = picks.find(pk => pk.toLowerCase().trim() === latestWinner.toLowerCase().trim());
+        if (picked) whoGotIt.push(p.name + " +" + pts);
     }
 
-    const msg = `\u{1F6A8} ${latestGame.winner} wins! ${whoGotIt.length > 0 ? whoGotIt.join(", ") : "Nobody picked this one!"}`;
+    const msg = `\u{1F6A8} ${latestWinner} advances! ${whoGotIt.length > 0 ? whoGotIt.join(", ") : "Nobody picked this one!"}`;
     showNotification(msg);
 }
 
@@ -726,60 +732,152 @@ function renderH2H() {
 }
 
 // ===== Games View =====
+function getSeedForTeam(teamName) {
+    const master = bracketData.master;
+    for (const region of master.regions) {
+        for (const matchup of region.matchups) {
+            if (matchup[0].name.toLowerCase().trim() === teamName.toLowerCase().trim()) return matchup[0].seed;
+            if (matchup[1].name.toLowerCase().trim() === teamName.toLowerCase().trim()) return matchup[1].seed;
+        }
+    }
+    return "?";
+}
+
+function getRegionForTeam(teamName) {
+    const master = bracketData.master;
+    for (const region of master.regions) {
+        for (const matchup of region.matchups) {
+            if (matchup[0].name.toLowerCase().trim() === teamName.toLowerCase().trim()) return region.name;
+            if (matchup[1].name.toLowerCase().trim() === teamName.toLowerCase().trim()) return region.name;
+        }
+    }
+    return "";
+}
+
 function renderGames() {
     const container = document.getElementById("games-list");
-
     const master = bracketData.master;
     let gamesHtml = "";
 
-    const completedGames = [];
+    const roundLabels = {
+        "Round of 32": "Round of 64",
+        "Sweet 16": "Round of 32",
+        "Elite 8": "Sweet 16",
+        "Final Four": "Elite 8",
+        "Finalist": "Final Four",
+        "Champion": "Championship"
+    };
 
+    const roundOrder = ["Champion", "Finalist", "Final Four", "Elite 8", "Sweet 16", "Round of 32"];
+    const allGames = [];
+
+    // Build games from all rounds
     for (const region of master.regions) {
+        // Round of 64: original matchups -> winners go to "Round of 32"
         const r32Winners = region.round_winners["Round of 32"] || [];
-
-        for (let i = 0; i < region.matchups.length; i++) {
-            const matchup = region.matchups[i];
+        for (const matchup of region.matchups) {
             const team1 = matchup[0];
             const team2 = matchup[1];
-
             const winner = r32Winners.find(w =>
                 w.toLowerCase().trim() === team1.name.toLowerCase().trim() ||
                 w.toLowerCase().trim() === team2.name.toLowerCase().trim()
             );
+            allGames.push({
+                team1Name: team1.name, team1Seed: team1.seed,
+                team2Name: team2.name, team2Seed: team2.seed,
+                winner: winner || null,
+                region: region.name,
+                roundDisplay: "Round of 64",
+                roundKey: "Round of 32",
+                roundSortOrder: 6
+            });
+        }
 
-            if (winner) {
-                completedGames.push({
-                    team1: team1,
-                    team2: team2,
-                    winner: winner,
+        // Later rounds: winners from previous round paired up
+        const laterRounds = [
+            { prevKey: "Round of 32", targetKey: "Sweet 16", display: "Round of 32", sortOrder: 5 },
+            { prevKey: "Sweet 16", targetKey: "Elite 8", display: "Sweet 16", sortOrder: 4 },
+            { prevKey: "Elite 8", targetKey: "Final Four", display: "Elite 8", sortOrder: 3 },
+        ];
+
+        for (const rd of laterRounds) {
+            const prevWinners = region.round_winners[rd.prevKey] || [];
+            const targetWinners = region.round_winners[rd.targetKey] || [];
+            // Pair up winners based on bracket position (every 2 consecutive winners)
+            for (let i = 0; i + 1 < prevWinners.length; i += 2) {
+                const t1 = prevWinners[i];
+                const t2 = prevWinners[i + 1];
+                const winner = targetWinners.find(w =>
+                    w.toLowerCase().trim() === t1.toLowerCase().trim() ||
+                    w.toLowerCase().trim() === t2.toLowerCase().trim()
+                );
+                allGames.push({
+                    team1Name: t1, team1Seed: getSeedForTeam(t1),
+                    team2Name: t2, team2Seed: getSeedForTeam(t2),
+                    winner: winner || null,
                     region: region.name,
-                    round: "Round of 64"
-                });
-            } else {
-                completedGames.push({
-                    team1: team1,
-                    team2: team2,
-                    winner: null,
-                    region: region.name,
-                    round: "Round of 64",
-                    upcoming: true
+                    roundDisplay: rd.display,
+                    roundKey: rd.targetKey,
+                    roundSortOrder: rd.sortOrder
                 });
             }
         }
     }
 
-    const completed = completedGames.filter(g => g.winner);
-    const upcoming = completedGames.filter(g => !g.winner);
+    // Separate completed and upcoming, sort by round (latest first for completed)
+    const completed = allGames.filter(g => g.winner);
+    const upcoming = allGames.filter(g => !g.winner && g.team1Name && g.team2Name);
 
-    if (completed.length > 0) {
-        gamesHtml += `<div class="game-date-header">&#9989; COMPLETED GAMES - ROUND OF 64</div>`;
-        for (const game of completed) {
-            const t1Won = game.winner.toLowerCase().trim() === game.team1.name.toLowerCase().trim();
+    // Sort completed: latest round first
+    completed.sort((a, b) => a.roundSortOrder - b.roundSortOrder);
+
+    // Group by round
+    const completedByRound = {};
+    for (const game of completed) {
+        if (!completedByRound[game.roundDisplay]) completedByRound[game.roundDisplay] = [];
+        completedByRound[game.roundDisplay].push(game);
+    }
+
+    const upcomingByRound = {};
+    for (const game of upcoming) {
+        if (!upcomingByRound[game.roundDisplay]) upcomingByRound[game.roundDisplay] = [];
+        upcomingByRound[game.roundDisplay].push(game);
+    }
+
+    // Render upcoming first (most interesting)
+    for (const [roundName, games] of Object.entries(upcomingByRound)) {
+        gamesHtml += `<div class="game-date-header">&#128337; UPCOMING - ${roundName.toUpperCase()}</div>`;
+        for (const game of games) {
+            gamesHtml += `
+                <div class="game-card">
+                    <div class="game-team away">
+                        <span class="seed-badge">${game.team1Seed}</span>
+                        ${game.team1Name}
+                    </div>
+                    <div class="game-score-center">
+                        <div class="game-status">UPCOMING</div>
+                        <div style="font-size: 10px; color: var(--text-dim); margin-top: 2px;">${game.region}</div>
+                    </div>
+                    <div class="game-team home">
+                        ${game.team2Name}
+                        <span class="seed-badge">${game.team2Seed}</span>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    // Render completed
+    for (const [roundName, games] of Object.entries(completedByRound)) {
+        gamesHtml += `<div class="game-date-header">&#9989; COMPLETED - ${roundName.toUpperCase()}</div>`;
+        for (const game of games) {
+            const t1Won = game.winner.toLowerCase().trim() === game.team1Name.toLowerCase().trim();
+            const pickRoundKey = game.roundKey;
             gamesHtml += `
                 <div class="game-card">
                     <div class="game-team away" style="${t1Won ? 'color: var(--correct); font-weight: 700;' : ''}">
-                        <span class="seed-badge">${game.team1.seed}</span>
-                        ${game.team1.name}
+                        <span class="seed-badge">${game.team1Seed}</span>
+                        ${game.team1Name}
                         ${t1Won ? ' &#9989;' : ''}
                     </div>
                     <div class="game-score-center">
@@ -787,9 +885,9 @@ function renderGames() {
                         <div style="font-size: 10px; color: var(--text-dim); margin-top: 2px;">${game.region}</div>
                     </div>
                     <div class="game-team home" style="${!t1Won ? 'color: var(--correct); font-weight: 700;' : ''}">
-                        ${game.team2.name}
+                        ${game.team2Name}
                         ${!t1Won ? ' &#9989;' : ''}
-                        <span class="seed-badge">${game.team2.seed}</span>
+                        <span class="seed-badge">${game.team2Seed}</span>
                     </div>
                 </div>
             `;
@@ -798,10 +896,10 @@ function renderGames() {
             for (const player of bracketData.participants) {
                 const region = player.regions.find(r => r.name === game.region);
                 if (!region) continue;
-                const r32Picks = region.round_winners["Round of 32"] || [];
-                const pickedWinner = r32Picks.find(p =>
-                    p.toLowerCase().trim() === game.team1.name.toLowerCase().trim() ||
-                    p.toLowerCase().trim() === game.team2.name.toLowerCase().trim()
+                const picks = region.round_winners[pickRoundKey] || [];
+                const pickedWinner = picks.find(p =>
+                    p.toLowerCase().trim() === game.team1Name.toLowerCase().trim() ||
+                    p.toLowerCase().trim() === game.team2Name.toLowerCase().trim()
                 );
                 const isCorrect = pickedWinner && pickedWinner.toLowerCase().trim() === game.winner.toLowerCase().trim();
                 gamesHtml += `<span class="picker-badge ${isCorrect ? 'has-pick' : ''}" title="${player.name} picked ${pickedWinner || '?'}">${player.name}: ${pickedWinner || '?'} ${isCorrect ? '\u2713' : '\u2717'}</span>`;
@@ -810,29 +908,7 @@ function renderGames() {
         }
     }
 
-    if (upcoming.length > 0) {
-        gamesHtml += `<div class="game-date-header">&#128337; UPCOMING GAMES</div>`;
-        for (const game of upcoming) {
-            gamesHtml += `
-                <div class="game-card">
-                    <div class="game-team away">
-                        <span class="seed-badge">${game.team1.seed}</span>
-                        ${game.team1.name}
-                    </div>
-                    <div class="game-score-center">
-                        <div class="game-status">UPCOMING</div>
-                        <div style="font-size: 10px; color: var(--text-dim); margin-top: 2px;">${game.region}</div>
-                    </div>
-                    <div class="game-team home">
-                        ${game.team2.name}
-                        <span class="seed-badge">${game.team2.seed}</span>
-                    </div>
-                </div>
-            `;
-        }
-    }
-
-    if (completedGames.length === 0) {
+    if (allGames.length === 0) {
         gamesHtml = `<div class="no-games">No game data available yet. Games will appear here once the tournament begins.</div>`;
     }
 
