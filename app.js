@@ -1137,6 +1137,175 @@ function renderStats() {
         detail: chalkKing ? `${chalkKing.chalk} favorites picked (seeds 1-4)` : ""
     });
 
+    // 6. Heartbreak Index — who has the most picks eliminated (bracket busted)
+    const heartbreakScores = {};
+    for (const p of participants) {
+        let eliminated = 0;
+        for (let ri = 0; ri < 4; ri++) {
+            const masterRegion = master.regions[ri];
+            const pickRegion = p.regions[ri];
+            for (const rk of roundKeys) {
+                const picks = pickRegion.round_winners[rk] || [];
+                for (const pick of picks) {
+                    if (isTeamEliminated(pick.toLowerCase().trim(), masterRegion)) {
+                        eliminated++;
+                    }
+                }
+            }
+        }
+        heartbreakScores[p.name] = eliminated;
+    }
+    const heartbreakKing = Object.entries(heartbreakScores).sort((a, b) => b[1] - a[1])[0];
+    stats.push({
+        icon: "\u{1F494}",
+        title: "Heartbreak Index",
+        value: heartbreakKing ? heartbreakKing[0] : "N/A",
+        detail: heartbreakKing ? `${heartbreakKing[1]} picks eliminated \u2014 most busted bracket` : ""
+    });
+
+    // 7. Hivemind Score — what % of the family picked the same R64 winner
+    let unanimousGames = 0;
+    let splitGames = 0;
+    let totalGamesChecked = 0;
+    for (let ri = 0; ri < 4; ri++) {
+        const masterRegion = master.regions[ri];
+        const r32Winners = masterRegion.round_winners["Round of 32"] || [];
+        for (const matchup of masterRegion.matchups) {
+            const t1 = matchup[0].name.toLowerCase().trim();
+            const t2 = matchup[1].name.toLowerCase().trim();
+            const winner = r32Winners.find(w => w.toLowerCase().trim() === t1 || w.toLowerCase().trim() === t2);
+            if (!winner) continue;
+            totalGamesChecked++;
+            let pickedWinnerCount = 0;
+            for (const p of participants) {
+                const picks = p.regions[ri].round_winners["Round of 32"] || [];
+                const picked = picks.find(pk => pk.toLowerCase().trim() === winner.toLowerCase().trim());
+                if (picked) pickedWinnerCount++;
+            }
+            if (pickedWinnerCount === participants.length) unanimousGames++;
+            if (pickedWinnerCount <= Math.floor(participants.length / 2)) splitGames++;
+        }
+    }
+    stats.push({
+        icon: "\u{1F9E0}",
+        title: "Hivemind Score",
+        value: totalGamesChecked > 0 ? `${Math.round((unanimousGames / totalGamesChecked) * 100)}%` : "N/A",
+        detail: totalGamesChecked > 0 ? `${unanimousGames} unanimous picks, ${splitGames} split decisions out of ${totalGamesChecked} games` : ""
+    });
+
+    // 8. Cinderella Tracker — who picked the lowest seed to go the furthest
+    let cinderellaKing = { name: "N/A", team: "", seed: 0, round: "" };
+    for (const p of participants) {
+        for (let rki = roundKeys.length - 1; rki >= 0; rki--) {
+            const rk = roundKeys[rki];
+            for (const region of p.regions) {
+                const picks = region.round_winners[rk] || [];
+                for (const pick of picks) {
+                    const seed = findTeamSeed(pick, region);
+                    if (seed && parseInt(seed) > cinderellaKing.seed) {
+                        cinderellaKing = { name: p.name, team: pick, seed: parseInt(seed), round: roundLabels[rki] };
+                    }
+                }
+            }
+        }
+    }
+    stats.push({
+        icon: "\u{1F451}",
+        title: "Cinderella Tracker",
+        value: cinderellaKing.name,
+        detail: cinderellaKing.seed > 0 ? `Picked ${cinderellaKing.seed}-seed ${cinderellaKing.team} to reach the ${cinderellaKing.round}` : "No Cinderella picks yet"
+    });
+
+    // 9. Agreement Matrix — find the two most similar brackets
+    let maxAgreement = 0;
+    let agreePair = ["", ""];
+    let minAgreement = 999;
+    let disagreePair = ["", ""];
+    for (let i = 0; i < participants.length; i++) {
+        for (let j = i + 1; j < participants.length; j++) {
+            let agree = 0;
+            let total = 0;
+            for (let ri = 0; ri < 4; ri++) {
+                for (const rk of roundKeys) {
+                    const picks1 = participants[i].regions[ri].round_winners[rk] || [];
+                    const picks2 = participants[j].regions[ri].round_winners[rk] || [];
+                    for (const pk of picks1) {
+                        total++;
+                        if (picks2.some(p2 => p2.toLowerCase().trim() === pk.toLowerCase().trim())) agree++;
+                    }
+                }
+            }
+            if (total > 0) {
+                const pct = agree / total;
+                if (pct > maxAgreement) { maxAgreement = pct; agreePair = [participants[i].name, participants[j].name]; }
+                if (pct < minAgreement) { minAgreement = pct; disagreePair = [participants[i].name, participants[j].name]; }
+            }
+        }
+    }
+    stats.push({
+        icon: "\u{1F91D}",
+        title: "Bracket Twins",
+        value: `${agreePair[0]} & ${agreePair[1]}`,
+        detail: `${Math.round(maxAgreement * 100)}% agreement \u2014 Most different: ${disagreePair[0]} & ${disagreePair[1]} (${Math.round(minAgreement * 100)}%)`
+    });
+
+    // 10. Round MVP — who gained the most points in each completed round
+    let roundMvpDetail = "";
+    for (let rki = 0; rki < roundKeys.length; rki++) {
+        const rk = roundKeys[rki];
+        const pts = scoringValues[rki] || 0;
+        let bestPlayer = "";
+        let bestPts = 0;
+        for (const p of participants) {
+            let roundPts = 0;
+            for (let ri = 0; ri < 4; ri++) {
+                const masterWinners = (master.regions[ri].round_winners[rk] || []).map(w => w.toLowerCase().trim());
+                const picks = p.regions[ri].round_winners[rk] || [];
+                for (const pick of picks) {
+                    if (masterWinners.includes(pick.toLowerCase().trim())) roundPts += pts;
+                }
+            }
+            if (roundPts > bestPts) { bestPts = roundPts; bestPlayer = p.name; }
+        }
+        if (bestPts > 0) roundMvpDetail += `${roundLabels[rki]}: ${bestPlayer} (+${bestPts}) | `;
+    }
+    stats.push({
+        icon: "\u{1F3C6}",
+        title: "Round MVP",
+        value: roundMvpDetail ? roundMvpDetail.split("|")[0].trim().split(":")[1].trim() : "N/A",
+        detail: roundMvpDetail ? roundMvpDetail.replace(/\| $/, "").trim() : "No rounds completed yet"
+    });
+
+    // 11. Contrarian Correct — picks where ONLY one person got it right
+    const contrarianCorrects = {};
+    for (const p of participants) contrarianCorrects[p.name] = [];
+    for (let ri = 0; ri < 4; ri++) {
+        const masterRegion = master.regions[ri];
+        for (const rk of roundKeys) {
+            const masterWinners = masterRegion.round_winners[rk] || [];
+            for (const winner of masterWinners) {
+                const wLower = winner.toLowerCase().trim();
+                const whoPickedIt = [];
+                for (const p of participants) {
+                    const picks = p.regions[ri].round_winners[rk] || [];
+                    if (picks.some(pk => pk.toLowerCase().trim() === wLower)) {
+                        whoPickedIt.push(p.name);
+                    }
+                }
+                if (whoPickedIt.length === 1) {
+                    contrarianCorrects[whoPickedIt[0]].push(winner);
+                }
+            }
+        }
+    }
+    const contrarianCorrectKing = Object.entries(contrarianCorrects).sort((a, b) => b[1].length - a[1].length)[0];
+    stats.push({
+        icon: "\u{1F9D0}",
+        title: "Lone Wolf Correct",
+        value: contrarianCorrectKing && contrarianCorrectKing[1].length > 0 ? contrarianCorrectKing[0] : "Nobody yet",
+        detail: contrarianCorrectKing && contrarianCorrectKing[1].length > 0 ? `Only one to pick: ${contrarianCorrectKing[1].join(", ")}` : "No solo correct picks yet"
+    });
+
     // Render stat cards
     let html = "";
     for (const stat of stats) {
