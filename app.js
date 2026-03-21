@@ -37,15 +37,109 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
     });
 });
 
+// ===== Theme Toggle =====
+function initTheme() {
+    const saved = localStorage.getItem("theme");
+    if (saved === "light") {
+        document.documentElement.classList.add("light");
+        updateThemeIcon();
+    }
+}
+
+function toggleTheme() {
+    document.documentElement.classList.toggle("light");
+    const isLight = document.documentElement.classList.contains("light");
+    localStorage.setItem("theme", isLight ? "light" : "dark");
+    updateThemeIcon();
+}
+
+function updateThemeIcon() {
+    const btn = document.getElementById("theme-toggle");
+    const isLight = document.documentElement.classList.contains("light");
+    btn.innerHTML = isLight ? "&#9728;" : "&#9790;";
+    btn.title = isLight ? "Switch to dark mode" : "Switch to light mode";
+}
+
+document.getElementById("theme-toggle").addEventListener("click", toggleTheme);
+initTheme();
+
+// ===== Confetti =====
+function launchConfetti() {
+    const container = document.getElementById("confetti-container");
+    const colors = ["#f97316", "#fbbf24", "#22c55e", "#3b82f6", "#ef4444", "#a855f7", "#ec4899"];
+    const shapes = ["square", "circle"];
+    const count = 25;
+
+    for (let i = 0; i < count; i++) {
+        const piece = document.createElement("div");
+        piece.classList.add("confetti-piece");
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const shape = shapes[Math.floor(Math.random() * shapes.length)];
+        const left = Math.random() * 100;
+        const size = 6 + Math.random() * 8;
+        const duration = 2 + Math.random() * 2;
+        const rotation = (Math.random() - 0.5) * 1080;
+        const delay = Math.random() * 0.5;
+
+        piece.style.left = left + "%";
+        piece.style.width = size + "px";
+        piece.style.height = size + "px";
+        piece.style.backgroundColor = color;
+        piece.style.borderRadius = shape === "circle" ? "50%" : "2px";
+        piece.style.setProperty("--fall-duration", duration + "s");
+        piece.style.setProperty("--rotation", rotation + "deg");
+        piece.style.animationDelay = delay + "s";
+
+        container.appendChild(piece);
+        setTimeout(() => piece.remove(), (duration + delay) * 1000 + 200);
+    }
+}
+
+document.getElementById("confetti-btn").addEventListener("click", launchConfetti);
+
+// ===== Notification Banner =====
+let notificationTimer = null;
+
+function showNotification(message) {
+    const banner = document.getElementById("notification-banner");
+    const text = document.getElementById("notification-text");
+    text.textContent = message;
+    banner.classList.remove("hidden");
+
+    if (notificationTimer) clearTimeout(notificationTimer);
+    notificationTimer = setTimeout(() => dismissNotification(), 10000);
+}
+
+function dismissNotification() {
+    document.getElementById("notification-banner").classList.add("hidden");
+    if (notificationTimer) { clearTimeout(notificationTimer); notificationTimer = null; }
+}
+
+document.getElementById("notification-close").addEventListener("click", dismissNotification);
+document.getElementById("notification-banner").addEventListener("click", (e) => {
+    if (e.target.id !== "notification-close") dismissNotification();
+});
+
 // ===== Load App =====
 async function loadApp() {
     try {
         const resp = await fetch("bracket_data.json?t=" + Date.now());
         bracketData = await resp.json();
         renderLeaderboard();
+        renderEliminationTracker();
         renderBracketSelector();
+        renderH2HSelectors();
         renderGames();
+        renderStats();
+        renderScoreChart();
         updateTimestamp();
+        buildNotification();
+
+        // Confetti on load if viewing leaderboard
+        const leaderboardActive = document.getElementById("view-leaderboard").classList.contains("active");
+        if (leaderboardActive) {
+            setTimeout(() => launchConfetti(), 500);
+        }
     } catch (err) {
         console.error("Failed to load bracket data:", err);
     }
@@ -60,22 +154,56 @@ function updateTimestamp() {
         `Updated: ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
 }
 
+// ===== Build Notification from latest results =====
+function buildNotification() {
+    const master = bracketData.master;
+    const participants = bracketData.participants;
+
+    // Find the most recent completed game
+    let latestGame = null;
+    for (const region of master.regions) {
+        const r32Winners = region.round_winners["Round of 32"] || [];
+        for (let i = 0; i < region.matchups.length; i++) {
+            const matchup = region.matchups[i];
+            const winner = r32Winners.find(w =>
+                w.toLowerCase().trim() === matchup[0].name.toLowerCase().trim() ||
+                w.toLowerCase().trim() === matchup[1].name.toLowerCase().trim()
+            );
+            if (winner) {
+                latestGame = { winner, region: region.name, matchup };
+            }
+        }
+    }
+
+    if (!latestGame) return;
+
+    // Find who picked the winner
+    const whoGotIt = [];
+    for (const p of participants) {
+        const pRegion = p.regions.find(r => r.name === latestGame.region);
+        if (!pRegion) continue;
+        const picks = pRegion.round_winners["Round of 32"] || [];
+        const picked = picks.find(pk => pk.toLowerCase().trim() === latestGame.winner.toLowerCase().trim());
+        if (picked) whoGotIt.push(p.name + " +1");
+    }
+
+    const msg = `\u{1F6A8} ${latestGame.winner} wins! ${whoGotIt.length > 0 ? whoGotIt.join(", ") : "Nobody picked this one!"}`;
+    showNotification(msg);
+}
+
 // ===== Leaderboard =====
 function renderLeaderboard() {
     const participants = [...bracketData.participants].sort((a, b) => b.score - a.score);
 
-    // Assign ranks (handle ties)
     let rank = 1;
     participants.forEach((p, i) => {
         if (i > 0 && p.score < participants[i - 1].score) rank = i + 1;
         p.rank = rank;
     });
 
-    // Top 3 cards
     const cardsHtml = participants.slice(0, 3).map((p, i) => {
         const medals = ["&#129351;", "&#129352;", "&#129353;"];
         const classes = ["gold", "silver", "bronze"];
-        const roundBreakdown = getParticipantRoundBreakdown(p);
         const maxPossible = calculateMaxPossible(p);
         return `
             <div class="leader-card ${classes[i]}">
@@ -91,7 +219,6 @@ function renderLeaderboard() {
     }).join("");
     document.getElementById("leaderboard-cards").innerHTML = cardsHtml;
 
-    // Full table
     const tableHtml = participants.map(p => {
         const rb = getParticipantRoundBreakdown(p);
         const maxPossible = calculateMaxPossible(p);
@@ -151,30 +278,10 @@ function getParticipantRoundBreakdown(participant) {
 }
 
 function calculateMaxPossible(participant) {
-    // Current score + points for all picks that are still alive (not yet wrong)
     const master = bracketData.master;
     const scoring = bracketData.scoring;
     const roundKeys = ["Round of 32", "Sweet 16", "Elite 8", "Final Four", "Finalist", "Champion"];
 
-    // Get all eliminated teams from the master bracket
-    const allMasterTeams = new Set();
-    const advancedTeams = new Set();
-
-    for (const region of master.regions) {
-        for (const matchup of region.matchups) {
-            for (const team of matchup) {
-                allMasterTeams.add(team.name.toLowerCase().trim());
-            }
-        }
-        for (const [rk, winners] of Object.entries(region.round_winners)) {
-            for (const w of winners) {
-                advancedTeams.add(w.toLowerCase().trim());
-            }
-        }
-    }
-
-    // A team is eliminated if it was in R1 but never shows up as a winner in any round it should have
-    // For simplicity, max possible = current score + points for all remaining picks whose team hasn't lost yet
     let maxPts = participant.score;
     const scoringValues = Object.values(scoring);
 
@@ -190,10 +297,7 @@ function calculateMaxPossible(participant) {
 
             for (const pick of pickWinners) {
                 const pickLower = pick.toLowerCase().trim();
-                // Already counted in current score if correct
                 if (masterWinners.includes(pickLower)) continue;
-                // If this round hasn't been fully played yet, and team could still win
-                // Simple heuristic: if team is still in the tournament (hasn't been eliminated)
                 if (!isTeamEliminated(pickLower, masterRegion)) {
                     maxPts += pts;
                 }
@@ -205,11 +309,8 @@ function calculateMaxPossible(participant) {
 }
 
 function isTeamEliminated(teamName, masterRegion) {
-    // Check if a team has lost in the master bracket
-    // A team is eliminated if: it played in a round and didn't advance
     const roundKeys = ["Round of 32", "Sweet 16", "Elite 8", "Final Four", "Finalist", "Champion"];
 
-    // Find which matchup the team is in
     let teamInBracket = false;
     for (const matchup of masterRegion.matchups) {
         for (const team of matchup) {
@@ -221,32 +322,56 @@ function isTeamEliminated(teamName, masterRegion) {
         if (teamInBracket) break;
     }
 
-    if (!teamInBracket) return true; // Team not even in this region
+    if (!teamInBracket) return true;
 
-    // Check if team appears in the latest round results
-    // If a round has results and team is not in them, team is eliminated at that round
     for (let i = 0; i < roundKeys.length; i++) {
         const rk = roundKeys[i];
         const winners = (masterRegion.round_winners[rk] || []).map(w => w.toLowerCase().trim());
 
-        if (winners.length === 0) continue; // Round not played yet
+        if (winners.length === 0) continue;
 
-        // How many winners should this round have?
-        const expectedWinners = Math.max(1, 8 >> i); // 8, 4, 2, 1...
+        const expectedWinners = Math.max(1, 8 >> i);
 
-        // If round seems complete (has expected number of winners)
         if (winners.length >= expectedWinners) {
             if (!winners.includes(teamName)) {
-                return true; // Team didn't advance
+                return true;
             }
-        } else {
-            // Round partially played - check if team's specific matchup has been decided
-            // If team is not in partial results, it might still play
-            // For safety, assume not eliminated unless clearly so
         }
     }
 
     return false;
+}
+
+// ===== Elimination Tracker =====
+function renderEliminationTracker() {
+    const container = document.getElementById("elimination-tracker");
+    const participants = [...bracketData.participants].sort((a, b) => b.score - a.score);
+    const leaderScore = participants[0].score;
+
+    let html = `<div class="elim-header">\u{1F480} ELIMINATION WATCH</div>`;
+    html += `<div class="elim-grid">`;
+
+    for (const p of participants) {
+        const maxPossible = calculateMaxPossible(p);
+        const eliminated = maxPossible < leaderScore;
+        const status = eliminated ? "eliminated" : "alive";
+        const badgeText = eliminated ? "\u{274C} Eliminated" : "\u{2705} Still Alive";
+
+        html += `
+            <div class="elim-card ${status}">
+                <div class="elim-info">
+                    <div class="elim-name">${p.name}</div>
+                    <div class="elim-details">
+                        Score: ${p.score} | Max possible: ${maxPossible}
+                    </div>
+                </div>
+                <div class="elim-badge ${status}">${badgeText}</div>
+            </div>
+        `;
+    }
+
+    html += `</div>`;
+    container.innerHTML = html;
 }
 
 // ===== Bracket Display =====
@@ -287,10 +412,6 @@ function renderBracket(playerId) {
         `;
     }
 
-    const regionNames = ["South", "East", "West", "Midwest"];
-    const roundKeys = ["Round of 64", "Round of 32", "Sweet 16", "Elite 8", "Final Four", "Finalist"];
-    const roundLabels = ["R1", "R32", "S16", "E8", "F4", "FINALS"];
-
     for (let ri = 0; ri < 4; ri++) {
         const region = source.regions[ri];
         const masterRegion = master.regions[ri];
@@ -298,10 +419,8 @@ function renderBracket(playerId) {
         html += `<div class="region-bracket">`;
         html += `<div class="region-title">${region.name} REGION</div>`;
 
-        // Show R1 matchups and subsequent round picks
         html += `<div class="bracket-rounds-grid">`;
 
-        // Round 1 - the matchups
         html += `<div class="bracket-round-col">`;
         html += `<div class="round-header">Round of 64</div><div class="round-teams">`;
         for (const matchup of region.matchups) {
@@ -313,7 +432,6 @@ function renderBracket(playerId) {
         }
         html += `</div></div>`;
 
-        // Subsequent rounds
         const laterRounds = ["Round of 32", "Sweet 16", "Elite 8", "Final Four", "Finalist"];
         const laterLabels = ["R32", "S16", "E8", "F4", "FINALS"];
 
@@ -332,13 +450,11 @@ function renderBracket(playerId) {
                     if (masterWinners.includes(pick.toLowerCase().trim())) {
                         status = "correct";
                     } else {
-                        // Check if team is eliminated
                         if (isTeamEliminated(pick.toLowerCase().trim(), masterRegion)) {
                             status = "wrong";
                         }
                     }
                 } else if (!isMaster) {
-                    // Check if team is already eliminated in earlier round
                     if (isTeamEliminated(pick.toLowerCase().trim(), masterRegion)) {
                         status = "eliminated-pick";
                     }
@@ -358,14 +474,13 @@ function renderBracket(playerId) {
             html += `</div></div>`;
         }
 
-        html += `</div>`; // bracket-rounds-grid
-        html += `</div>`; // region-bracket
+        html += `</div>`;
+        html += `</div>`;
     }
 
     // Final Four / Championship section
     if (!isMaster) {
         const p = source;
-        // Find champion pick
         let championPick = "";
         let finalistPicks = [];
 
@@ -376,7 +491,6 @@ function renderBracket(playerId) {
             finalistPicks.push(...finalist);
         }
 
-        // Find F4 picks
         let f4Picks = [];
         for (const region of p.regions) {
             const f4 = region.round_winners["Final Four"] || [];
@@ -419,7 +533,6 @@ function renderBracket(playerId) {
         html += `</div>`;
     }
 
-    // "Who picked whom" comparison section
     if (!isMaster) {
         html += renderPicksComparison(source);
     }
@@ -448,13 +561,10 @@ function findTeamSeedGlobal(teamName, participant) {
 
 function renderPicksComparison(currentPlayer) {
     const allPlayers = bracketData.participants;
-    const roundKeys = ["Round of 32", "Sweet 16", "Elite 8", "Final Four", "Finalist", "Champion"];
-    const roundLabels = ["Round of 32", "Sweet 16", "Elite 8", "Final Four", "Finals", "Champion"];
 
     let html = `<div class="picks-comparison" style="margin-top: 24px;">`;
     html += `<h3>&#128101; How Everyone Picked</h3>`;
 
-    // Champion picks
     html += `<div style="margin-bottom: 16px;">`;
     html += `<div style="font-size: 12px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">Champion Picks</div>`;
     html += `<div class="picks-grid">`;
@@ -473,7 +583,6 @@ function renderPicksComparison(currentPlayer) {
 
     html += `</div></div>`;
 
-    // Final Four picks
     html += `<div>`;
     html += `<div style="font-size: 12px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">Final Four Picks</div>`;
     html += `<div class="picks-grid">`;
@@ -496,16 +605,145 @@ function renderPicksComparison(currentPlayer) {
     return html;
 }
 
+// ===== Head-to-Head Comparison =====
+function renderH2HSelectors() {
+    const sel1 = document.getElementById("h2h-player1");
+    const sel2 = document.getElementById("h2h-player2");
+
+    let opts = `<option value="">-- Select Player --</option>`;
+    for (const p of bracketData.participants) {
+        opts += `<option value="${p.id}">${p.name}</option>`;
+    }
+    sel1.innerHTML = opts;
+    sel2.innerHTML = opts;
+
+    sel1.addEventListener("change", renderH2H);
+    sel2.addEventListener("change", renderH2H);
+}
+
+function renderH2H() {
+    const id1 = document.getElementById("h2h-player1").value;
+    const id2 = document.getElementById("h2h-player2").value;
+    const display = document.getElementById("h2h-display");
+
+    if (!id1 || !id2 || id1 === id2) {
+        display.innerHTML = id1 && id2 && id1 === id2
+            ? `<p style="color: var(--text-dim); text-align: center; padding: 16px;">Please select two different players.</p>`
+            : "";
+        return;
+    }
+
+    const p1 = bracketData.participants.find(p => p.id === id1);
+    const p2 = bracketData.participants.find(p => p.id === id2);
+    if (!p1 || !p2) return;
+
+    const max1 = calculateMaxPossible(p1);
+    const max2 = calculateMaxPossible(p2);
+
+    let html = "";
+
+    // Summary cards
+    const p1Leading = p1.score > p2.score ? "leading" : "";
+    const p2Leading = p2.score > p1.score ? "leading" : "";
+
+    html += `<div class="h2h-summary">`;
+    html += `<div class="h2h-player-card ${p1Leading}">
+        <div class="h2h-pname">${p1.name}</div>
+        <div class="h2h-pscore">${p1.score}</div>
+        <div class="h2h-plabel">points (max ${max1})</div>
+    </div>`;
+    html += `<div class="h2h-middle"><div class="vs-big">VS</div></div>`;
+    html += `<div class="h2h-player-card ${p2Leading}">
+        <div class="h2h-pname">${p2.name}</div>
+        <div class="h2h-pscore">${p2.score}</div>
+        <div class="h2h-plabel">points (max ${max2})</div>
+    </div>`;
+    html += `</div>`;
+
+    // Region-by-region comparison
+    const roundKeys = ["Round of 32", "Sweet 16", "Elite 8", "Final Four", "Finalist", "Champion"];
+    const roundLabels = ["R32", "S16", "E8", "F4", "Finals", "Champ"];
+
+    let agreementCount = 0;
+    let totalPicks = 0;
+    let p1RemainingEdge = 0;
+    let p2RemainingEdge = 0;
+
+    for (let ri = 0; ri < 4; ri++) {
+        const r1 = p1.regions[ri];
+        const r2 = p2.regions[ri];
+        const masterRegion = bracketData.master.regions[ri];
+
+        html += `<div class="h2h-region">`;
+        html += `<div class="h2h-region-title">${r1.name} Region</div>`;
+
+        for (let rki = 0; rki < roundKeys.length; rki++) {
+            const rk = roundKeys[rki];
+            const picks1 = r1.round_winners[rk] || [];
+            const picks2 = r2.round_winners[rk] || [];
+            const maxLen = Math.max(picks1.length, picks2.length);
+            if (maxLen === 0) continue;
+
+            for (let pi = 0; pi < maxLen; pi++) {
+                const pk1 = picks1[pi] || "-";
+                const pk2 = picks2[pi] || "-";
+                const same = pk1.toLowerCase().trim() === pk2.toLowerCase().trim();
+                const diffClass = same ? "h2h-pick-same" : "h2h-pick-diff";
+                totalPicks++;
+                if (same) agreementCount++;
+
+                // Check remaining edge
+                if (!same) {
+                    const masterWinners = (masterRegion.round_winners[rk] || []).map(w => w.toLowerCase().trim());
+                    const p1Correct = masterWinners.includes(pk1.toLowerCase().trim());
+                    const p2Correct = masterWinners.includes(pk2.toLowerCase().trim());
+                    if (!p1Correct && !p2Correct) {
+                        // Both pending or both wrong - check if still alive
+                        const p1Alive = pk1 !== "-" && !isTeamEliminated(pk1.toLowerCase().trim(), masterRegion);
+                        const p2Alive = pk2 !== "-" && !isTeamEliminated(pk2.toLowerCase().trim(), masterRegion);
+                        if (p1Alive && !p2Alive) p1RemainingEdge++;
+                        if (p2Alive && !p1Alive) p2RemainingEdge++;
+                    }
+                }
+
+                html += `<div class="h2h-picks-row">
+                    <div class="h2h-pick-left ${diffClass}">${pk1}</div>
+                    <div class="h2h-round-label">${roundLabels[rki]}</div>
+                    <div class="h2h-pick-right ${diffClass}">${pk2}</div>
+                </div>`;
+            }
+        }
+
+        html += `</div>`;
+    }
+
+    // Edge in remaining picks
+    const totalEdge = p1RemainingEdge + p2RemainingEdge;
+    html += `<div class="h2h-edge-section">`;
+    html += `<div class="h2h-edge-title">Edge in Remaining Picks (where picks differ & one team is alive, the other eliminated)</div>`;
+    if (totalEdge > 0) {
+        const p1Pct = Math.round((p1RemainingEdge / totalEdge) * 100);
+        const p2Pct = 100 - p1Pct;
+        html += `<div class="h2h-edge-bar">
+            <div class="h2h-edge-fill p1" style="width: ${p1Pct}%">${p1.name} ${p1RemainingEdge}</div>
+            <div class="h2h-edge-fill p2" style="width: ${p2Pct}%">${p2.name} ${p2RemainingEdge}</div>
+        </div>`;
+    } else {
+        html += `<p style="color: var(--text-dim); font-size: 13px;">No clear edge - picks are even or all still pending.</p>`;
+    }
+    html += `<p style="font-size: 12px; color: var(--text-dim); margin-top: 4px;">Agreement rate: ${totalPicks > 0 ? Math.round((agreementCount / totalPicks) * 100) : 0}% (${agreementCount}/${totalPicks} picks match)</p>`;
+    html += `</div>`;
+
+    display.innerHTML = html;
+}
+
 // ===== Games View =====
 function renderGames() {
     const container = document.getElementById("games-list");
 
-    // Show completed games from master bracket
     const master = bracketData.master;
     let gamesHtml = "";
-    let gameCount = 0;
 
-    // Extract completed games from master bracket round_winners
     const completedGames = [];
 
     for (const region of master.regions) {
@@ -516,7 +754,6 @@ function renderGames() {
             const team1 = matchup[0];
             const team2 = matchup[1];
 
-            // Check if this game has a winner
             const winner = r32Winners.find(w =>
                 w.toLowerCase().trim() === team1.name.toLowerCase().trim() ||
                 w.toLowerCase().trim() === team2.name.toLowerCase().trim()
@@ -543,7 +780,6 @@ function renderGames() {
         }
     }
 
-    // Split into completed and upcoming
     const completed = completedGames.filter(g => g.winner);
     const upcoming = completedGames.filter(g => !g.winner);
 
@@ -570,7 +806,6 @@ function renderGames() {
                 </div>
             `;
 
-            // Show who picked whom
             gamesHtml += `<div class="who-picked">`;
             for (const player of bracketData.participants) {
                 const region = player.regions.find(r => r.name === game.region);
@@ -581,7 +816,7 @@ function renderGames() {
                     p.toLowerCase().trim() === game.team2.name.toLowerCase().trim()
                 );
                 const isCorrect = pickedWinner && pickedWinner.toLowerCase().trim() === game.winner.toLowerCase().trim();
-                gamesHtml += `<span class="picker-badge ${isCorrect ? 'has-pick' : ''}" title="${player.name} picked ${pickedWinner || '?'}">${player.name}: ${pickedWinner || '?'} ${isCorrect ? '✓' : '✗'}</span>`;
+                gamesHtml += `<span class="picker-badge ${isCorrect ? 'has-pick' : ''}" title="${player.name} picked ${pickedWinner || '?'}">${player.name}: ${pickedWinner || '?'} ${isCorrect ? '\u2713' : '\u2717'}</span>`;
             }
             gamesHtml += `</div><div style="margin-bottom: 12px;"></div>`;
         }
@@ -614,4 +849,305 @@ function renderGames() {
     }
 
     container.innerHTML = gamesHtml;
+}
+
+// ===== Fun Stats =====
+function renderStats() {
+    const container = document.getElementById("stats-cards");
+    const participants = bracketData.participants;
+    const master = bracketData.master;
+    const roundKeys = ["Round of 32", "Sweet 16", "Elite 8", "Final Four", "Finalist", "Champion"];
+    const roundLabels = ["R32", "S16", "E8", "F4", "Finals", "Champ"];
+    const scoringValues = Object.values(bracketData.scoring);
+
+    const stats = [];
+
+    // 1. Most Popular Pick per round
+    const popularByRound = {};
+    for (const rk of roundKeys) {
+        const pickCounts = {};
+        for (const p of participants) {
+            for (const region of p.regions) {
+                const picks = region.round_winners[rk] || [];
+                for (const pick of picks) {
+                    const key = pick.toLowerCase().trim();
+                    pickCounts[key] = pickCounts[key] || { name: pick, count: 0 };
+                    pickCounts[key].count++;
+                }
+            }
+        }
+        const sorted = Object.values(pickCounts).sort((a, b) => b.count - a.count);
+        if (sorted.length > 0) {
+            popularByRound[rk] = sorted[0];
+        }
+    }
+
+    let popularDetail = "";
+    for (const rk of roundKeys) {
+        if (popularByRound[rk]) {
+            const ri = roundKeys.indexOf(rk);
+            popularDetail += `${roundLabels[ri]}: ${popularByRound[rk].name} (${popularByRound[rk].count}/${participants.length})\n`;
+        }
+    }
+    stats.push({
+        icon: "\u{1F525}",
+        title: "Most Popular Picks",
+        value: popularByRound[roundKeys[0]] ? popularByRound[roundKeys[0]].name : "N/A",
+        detail: popularDetail.trim().replace(/\n/g, " | ")
+    });
+
+    // 2. Biggest Contrarian - most unique picks nobody else made
+    const contrarianScores = {};
+    for (const p of participants) {
+        contrarianScores[p.id] = { name: p.name, uniquePicks: 0 };
+        for (const rk of roundKeys) {
+            for (const region of p.regions) {
+                const picks = region.round_winners[rk] || [];
+                for (const pick of picks) {
+                    const pickLower = pick.toLowerCase().trim();
+                    let othersPicked = 0;
+                    for (const op of participants) {
+                        if (op.id === p.id) continue;
+                        for (const or2 of op.regions) {
+                            const oPicks = or2.round_winners[rk] || [];
+                            if (oPicks.some(op2 => op2.toLowerCase().trim() === pickLower)) {
+                                othersPicked++;
+                                break;
+                            }
+                        }
+                    }
+                    if (othersPicked === 0) contrarianScores[p.id].uniquePicks++;
+                }
+            }
+        }
+    }
+    const contrarian = Object.values(contrarianScores).sort((a, b) => b.uniquePicks - a.uniquePicks)[0];
+    stats.push({
+        icon: "\u{1F60E}",
+        title: "Biggest Contrarian",
+        value: contrarian ? contrarian.name : "N/A",
+        detail: contrarian ? `${contrarian.uniquePicks} picks that nobody else made` : ""
+    });
+
+    // 3. Best Upset Picker
+    const upsetScores = {};
+    for (const p of participants) {
+        upsetScores[p.id] = { name: p.name, upsets: 0 };
+        for (let ri = 0; ri < 4; ri++) {
+            const region = p.regions[ri];
+            const masterRegion = master.regions[ri];
+            for (const rk of roundKeys) {
+                const picks = region.round_winners[rk] || [];
+                const masterWinners = (masterRegion.round_winners[rk] || []).map(w => w.toLowerCase().trim());
+                for (const pick of picks) {
+                    if (masterWinners.includes(pick.toLowerCase().trim())) {
+                        const seed = findTeamSeed(pick, region) || findTeamSeed(pick, masterRegion);
+                        if (seed && parseInt(seed) > 4) {
+                            upsetScores[p.id].upsets++;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    const upsetKing = Object.values(upsetScores).sort((a, b) => b.upsets - a.upsets)[0];
+    stats.push({
+        icon: "\u{1F4A5}",
+        title: "Best Upset Picker",
+        value: upsetKing ? upsetKing.name : "N/A",
+        detail: upsetKing ? `${upsetKing.upsets} correct underdog picks (seed 5+)` : ""
+    });
+
+    // 4. Worst Round
+    let worstRound = { name: "N/A", round: "", wrong: 0 };
+    for (const p of participants) {
+        for (let rki = 0; rki < roundKeys.length; rki++) {
+            const rk = roundKeys[rki];
+            let wrongCount = 0;
+            let totalPicks = 0;
+            for (let ri = 0; ri < 4; ri++) {
+                const region = p.regions[ri];
+                const masterRegion = master.regions[ri];
+                const picks = region.round_winners[rk] || [];
+                const masterWinners = (masterRegion.round_winners[rk] || []).map(w => w.toLowerCase().trim());
+                if (masterWinners.length === 0) continue;
+                for (const pick of picks) {
+                    totalPicks++;
+                    if (!masterWinners.includes(pick.toLowerCase().trim())) {
+                        wrongCount++;
+                    }
+                }
+            }
+            if (totalPicks > 0 && wrongCount > worstRound.wrong) {
+                worstRound = { name: p.name, round: roundLabels[rki], wrong: wrongCount, total: totalPicks };
+            }
+        }
+    }
+    stats.push({
+        icon: "\u{1F62C}",
+        title: "Worst Round",
+        value: worstRound.name,
+        detail: worstRound.wrong > 0 ? `${worstRound.wrong} wrong picks in ${worstRound.round}` : "No completed rounds yet"
+    });
+
+    // 5. Chalk Picker - who picked the most favorites (1-4 seeds)
+    const chalkScores = {};
+    for (const p of participants) {
+        chalkScores[p.id] = { name: p.name, chalk: 0 };
+        for (const rk of roundKeys) {
+            for (const region of p.regions) {
+                const picks = region.round_winners[rk] || [];
+                for (const pick of picks) {
+                    const seed = findTeamSeed(pick, region);
+                    if (seed && parseInt(seed) >= 1 && parseInt(seed) <= 4) {
+                        chalkScores[p.id].chalk++;
+                    }
+                }
+            }
+        }
+    }
+    const chalkKing = Object.values(chalkScores).sort((a, b) => b.chalk - a.chalk)[0];
+    stats.push({
+        icon: "\u{1F4CF}",
+        title: "Chalk Picker",
+        value: chalkKing ? chalkKing.name : "N/A",
+        detail: chalkKing ? `${chalkKing.chalk} favorites picked (seeds 1-4)` : ""
+    });
+
+    // Render stat cards
+    let html = "";
+    for (const stat of stats) {
+        html += `
+            <div class="stat-card">
+                <div class="stat-card-icon">${stat.icon}</div>
+                <div class="stat-card-title">${stat.title}</div>
+                <div class="stat-card-value">${stat.value}</div>
+                <div class="stat-card-detail">${stat.detail}</div>
+            </div>
+        `;
+    }
+    container.innerHTML = html;
+}
+
+// ===== Score Progression Chart =====
+function renderScoreChart() {
+    const chartContainer = document.getElementById("score-chart");
+    const legendContainer = document.getElementById("chart-legend");
+    const participants = bracketData.participants;
+    const master = bracketData.master;
+    const roundKeys = ["Round of 32", "Sweet 16", "Elite 8", "Final Four", "Finalist", "Champion"];
+    const roundLabels = ["R32", "S16", "E8", "F4", "Finals", "Champ"];
+    const scoringValues = Object.values(bracketData.scoring);
+
+    // Determine which rounds have been played
+    const playedRounds = [];
+    for (let rki = 0; rki < roundKeys.length; rki++) {
+        const rk = roundKeys[rki];
+        let hasResults = false;
+        for (const region of master.regions) {
+            if ((region.round_winners[rk] || []).length > 0) {
+                hasResults = true;
+                break;
+            }
+        }
+        if (hasResults) playedRounds.push({ key: rk, label: roundLabels[rki], index: rki });
+    }
+
+    if (playedRounds.length === 0) {
+        chartContainer.innerHTML = `<p style="text-align: center; color: var(--text-dim); padding: 40px;">No rounds completed yet. Chart will appear as games are played.</p>`;
+        legendContainer.innerHTML = "";
+        return;
+    }
+
+    // Calculate cumulative scores per round per player
+    const colors = ["#f97316", "#3b82f6", "#22c55e", "#a855f7", "#ef4444", "#fbbf24", "#ec4899", "#06b6d4"];
+    const playerData = participants.map((p, idx) => {
+        let cumulative = 0;
+        const scores = [];
+        for (const pr of playedRounds) {
+            let roundScore = 0;
+            for (let ri = 0; ri < 4; ri++) {
+                const pickRegion = p.regions[ri];
+                const masterRegion = master.regions[ri];
+                const picks = pickRegion.round_winners[pr.key] || [];
+                const masterWinners = (masterRegion.round_winners[pr.key] || []).map(w => w.toLowerCase().trim());
+                for (const pick of picks) {
+                    if (masterWinners.includes(pick.toLowerCase().trim())) {
+                        roundScore += scoringValues[pr.index] || 0;
+                    }
+                }
+            }
+            cumulative += roundScore;
+            scores.push(cumulative);
+        }
+        return { name: p.name, scores, color: colors[idx % colors.length] };
+    });
+
+    // Find max score for chart scaling
+    const maxScore = Math.max(...playerData.flatMap(d => d.scores), 1);
+    const numRounds = playedRounds.length;
+
+    // Build SVG
+    const svgW = 800;
+    const svgH = 280;
+    const padL = 50;
+    const padR = 20;
+    const padT = 20;
+    const padB = 40;
+    const chartW = svgW - padL - padR;
+    const chartH = svgH - padT - padB;
+
+    let svg = `<svg viewBox="0 0 ${svgW} ${svgH}" xmlns="http://www.w3.org/2000/svg" style="width: 100%; height: 100%;">`;
+
+    // Grid lines and Y-axis labels
+    const yTicks = 5;
+    for (let i = 0; i <= yTicks; i++) {
+        const y = padT + (chartH / yTicks) * i;
+        const val = Math.round(maxScore * (1 - i / yTicks));
+        svg += `<line x1="${padL}" y1="${y}" x2="${svgW - padR}" y2="${y}" stroke="var(--border)" stroke-width="0.5"/>`;
+        svg += `<text x="${padL - 8}" y="${y + 4}" text-anchor="end" fill="var(--text-dim)" font-size="11" font-family="var(--font)">${val}</text>`;
+    }
+
+    // X-axis labels
+    for (let i = 0; i < numRounds; i++) {
+        const x = padL + (chartW / Math.max(numRounds - 1, 1)) * i;
+        const y = svgH - 8;
+        svg += `<text x="${x}" y="${y}" text-anchor="middle" fill="var(--text-dim)" font-size="11" font-family="var(--font)">${playedRounds[i].label}</text>`;
+    }
+
+    // Draw lines and dots per player
+    for (const pd of playerData) {
+        const points = pd.scores.map((s, i) => {
+            const x = padL + (chartW / Math.max(numRounds - 1, 1)) * i;
+            const y = padT + chartH - (s / maxScore) * chartH;
+            return { x, y };
+        });
+
+        // Line
+        if (points.length > 1) {
+            const pathD = points.map((pt, i) => `${i === 0 ? 'M' : 'L'} ${pt.x} ${pt.y}`).join(" ");
+            svg += `<path d="${pathD}" fill="none" stroke="${pd.color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+        }
+
+        // Dots
+        for (const pt of points) {
+            svg += `<circle cx="${pt.x}" cy="${pt.y}" r="4" fill="${pd.color}" stroke="var(--bg-card)" stroke-width="2"/>`;
+        }
+
+        // End label
+        if (points.length > 0) {
+            const last = points[points.length - 1];
+            svg += `<text x="${last.x + 8}" y="${last.y + 4}" fill="${pd.color}" font-size="11" font-weight="600" font-family="var(--font)">${pd.scores[pd.scores.length - 1]}</text>`;
+        }
+    }
+
+    svg += `</svg>`;
+    chartContainer.innerHTML = svg;
+
+    // Legend
+    let legendHtml = "";
+    for (const pd of playerData) {
+        legendHtml += `<div class="legend-entry"><div class="legend-swatch" style="background: ${pd.color}"></div>${pd.name}</div>`;
+    }
+    legendContainer.innerHTML = legendHtml;
 }

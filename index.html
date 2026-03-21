@@ -8,6 +8,16 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <!-- Basketball Favicon (SVG data URI) -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23f97316'/%3E%3Cpath d='M32 2 C32 62 32 62 32 62' stroke='%23000' stroke-width='2' fill='none'/%3E%3Cpath d='M2 32 C62 32 62 32 62 32' stroke='%23000' stroke-width='2' fill='none'/%3E%3Cpath d='M8 8 C24 20 24 44 8 56' stroke='%23000' stroke-width='2' fill='none'/%3E%3Cpath d='M56 8 C40 20 40 44 56 56' stroke='%23000' stroke-width='2' fill='none'/%3E%3Ccircle cx='32' cy='32' r='30' stroke='%23c2410c' stroke-width='3' fill='none'/%3E%3C/svg%3E">
+    <!-- iOS Home Screen Icon -->
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%230a0e1a'/%3E%3Ccircle cx='90' cy='90' r='60' fill='%23f97316'/%3E%3Cpath d='M90 30 C90 150 90 150 90 150' stroke='%23000' stroke-width='3' fill='none'/%3E%3Cpath d='M30 90 C150 90 150 90 150 90' stroke='%23000' stroke-width='3' fill='none'/%3E%3Ccircle cx='90' cy='90' r='60' stroke='%23c2410c' stroke-width='4' fill='none'/%3E%3C/svg%3E">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Bracket Challenge">
+    <meta name="theme-color" content="#0a0e1a">
+    <!-- PWA Manifest (inline via data URI) -->
+    <link rel="manifest" href="data:application/json,%7B%22name%22%3A%22Webster%20Family%20Bracket%20Challenge%202026%22%2C%22short_name%22%3A%22Brackets%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230a0e1a%22%2C%22theme_color%22%3A%22%23f97316%22%2C%22description%22%3A%22Family%20NCAA%20bracket%20challenge%22%7D">
 </head>
 <body>
     <!-- Password Gate -->
@@ -41,16 +51,25 @@
                 </div>
                 <div class="header-right">
                     <span id="last-updated"></span>
+                    <button id="confetti-btn" title="Celebrate!">&#127881;</button>
+                    <button id="theme-toggle" title="Toggle light/dark mode">&#9790;</button>
                     <button id="refresh-btn" title="Refresh scores">&#8635;</button>
                 </div>
             </div>
         </header>
+
+        <!-- Notification Banner -->
+        <div id="notification-banner" class="hidden">
+            <span id="notification-text"></span>
+            <button id="notification-close">&times;</button>
+        </div>
 
         <!-- Navigation -->
         <nav>
             <button class="nav-btn active" data-view="leaderboard">&#127942; Leaderboard</button>
             <button class="nav-btn" data-view="brackets">&#128203; Brackets</button>
             <button class="nav-btn" data-view="matchups">&#127936; Today's Games</button>
+            <button class="nav-btn" data-view="stats">&#128202; Stats</button>
         </nav>
 
         <!-- Leaderboard View -->
@@ -88,6 +107,8 @@
                         <tbody id="leaderboard-body"></tbody>
                     </table>
                 </div>
+                <!-- Elimination Tracker -->
+                <div id="elimination-tracker"></div>
             </div>
         </main>
 
@@ -97,6 +118,18 @@
                 <div class="bracket-selector">
                     <label>Select Player:</label>
                     <select id="player-select"></select>
+                </div>
+                <!-- Head-to-Head Comparison -->
+                <div id="head-to-head-section" class="h2h-section">
+                    <div class="h2h-header">
+                        <h3>&#9876; Head-to-Head Comparison</h3>
+                    </div>
+                    <div class="h2h-selector">
+                        <select id="h2h-player1"><option value="">-- Player 1 --</option></select>
+                        <span class="h2h-vs">VS</span>
+                        <select id="h2h-player2"><option value="">-- Player 2 --</option></select>
+                    </div>
+                    <div id="h2h-display"></div>
                 </div>
                 <div id="bracket-display"></div>
             </div>
@@ -111,7 +144,23 @@
                 </div>
             </div>
         </main>
+
+        <!-- Stats View -->
+        <main id="view-stats" class="view">
+            <div class="stats-container">
+                <h2>&#128202; FUN STATS</h2>
+                <div id="stats-cards"></div>
+                <div id="score-chart-section">
+                    <h3 class="chart-title">&#128200; Round-by-Round Score Progression</h3>
+                    <div id="score-chart"></div>
+                    <div id="chart-legend"></div>
+                </div>
+            </div>
+        </main>
     </div>
+
+    <!-- Confetti Container -->
+    <div id="confetti-container"></div>
 
     <footer id="app-footer" class="hidden">
         <p>Webster Family Bracket Challenge 2026 &bull; Auto-updates hourly during game days</p>
