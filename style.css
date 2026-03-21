@@ -789,20 +789,90 @@ footer {
 /* ===== Responsive ===== */
 @media (max-width: 768px) {
     .header-left h1 { font-size: 16px; }
+    .header-inner { padding: 0; }
     .gate-logo h1 { font-size: 28px; }
     .gate-logo h2 { font-size: 20px; }
     .gate-logo .year { font-size: 48px; }
-    nav { padding: 12px 16px 0; }
-    .nav-btn { padding: 8px 14px; font-size: 13px; }
-    .view { padding: 16px; }
+    nav { padding: 12px 12px 0; gap: 6px; }
+    .nav-btn { padding: 8px 14px; font-size: 13px; flex: 1; text-align: center; min-width: 0; }
+    .view { padding: 12px; }
     .leaderboard-header { flex-direction: column; align-items: flex-start; }
     .scoring-info { display: none; }
-    #leaderboard-cards { grid-template-columns: 1fr; }
+
+    /* Leaderboard cards stack nicely */
+    #leaderboard-cards { grid-template-columns: 1fr; gap: 12px; }
     .leader-card { padding: 16px; }
     .leader-score { font-size: 32px; }
+    .leader-rank { font-size: 36px; }
+
+    /* Leaderboard table - hide less important columns on small screens */
+    #leaderboard-table th:nth-child(n+4):nth-child(-n+9),
+    #leaderboard-table td:nth-child(n+4):nth-child(-n+9) { display: none; }
+    #leaderboard-table { font-size: 13px; }
+    #leaderboard-table th { padding: 10px 8px; }
+    #leaderboard-table td { padding: 12px 8px; }
+    .score-cell { font-size: 16px; }
+
+    /* Games cards */
     .game-card { grid-template-columns: 1fr; gap: 8px; text-align: center; }
     .game-team.away, .game-team.home { justify-content: center; }
+
+    /* Bracket view */
     .bracket-player-header { flex-direction: column; align-items: flex-start; }
+    .bracket-player-name { font-size: 24px; }
+    .region-bracket { padding: 12px; }
+    .region-title { font-size: 16px; }
+    .bracket-round-col { min-width: 120px; }
+    .bracket-team { font-size: 11px; padding: 5px 6px; }
+
+    /* Scroll hint for bracket */
+    .bracket-rounds-grid {
+        -webkit-overflow-scrolling: touch;
+        scroll-snap-type: x proximity;
+    }
+    .bracket-rounds-grid::after {
+        content: '→ swipe';
+        position: sticky;
+        right: 0;
+        align-self: flex-start;
+        padding: 4px 8px;
+        background: var(--accent);
+        color: white;
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: 600;
+        opacity: 0.7;
+        pointer-events: none;
+        animation: fadeOut 3s forwards;
+    }
+    @keyframes fadeOut {
+        0%, 70% { opacity: 0.7; }
+        100% { opacity: 0; }
+    }
+
+    /* Picks comparison */
+    .picks-grid { grid-template-columns: 1fr !important; }
+    .picks-comparison { padding: 12px; }
+
+    /* Final four */
+    .final-four-section { padding: 14px; }
+    .final-four-title { font-size: 18px; }
+    .champion-box { padding: 14px; }
+    .champion-team { font-size: 22px; }
+
+    /* Who picked badges */
+    .who-picked { gap: 6px; }
+    .who-picked .picker-badge { font-size: 9px; padding: 3px 6px; }
+}
+
+/* Extra small phones */
+@media (max-width: 380px) {
+    .header-left h1 { font-size: 13px; letter-spacing: 1px; }
+    .header-icon { font-size: 28px; }
+    .nav-btn { padding: 7px 10px; font-size: 12px; }
+    .leader-name { font-size: 20px; }
+    .bracket-round-col { min-width: 100px; }
+    .bracket-team { font-size: 10px; }
 }
 
 /* ===== Scrollbar ===== */
@@ -932,4 +1002,13 @@ footer {
     background: var(--pending-bg);
     border-color: var(--pending);
     color: var(--pending);
+}
+
+/* Comparison items in "How Everyone Picked" - no prefix icon */
+.pick-item.comparison-item {
+    background: var(--pending-bg);
+    color: var(--pending);
+}
+.pick-item.comparison-item::before {
+    content: none;
 }

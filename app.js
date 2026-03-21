@@ -466,7 +466,7 @@ function renderPicksComparison(currentPlayer) {
             if (c.length > 0) champ = c[0];
         }
         const isCurrent = player.id === currentPlayer.id;
-        html += `<div class="pick-item pending" style="${isCurrent ? 'border: 1px solid var(--accent); font-weight: 700;' : ''}">
+        html += `<div class="pick-item comparison-item" style="${isCurrent ? 'border: 1px solid var(--accent); font-weight: 700;' : ''}">
             <span style="min-width: 50px; font-weight: 600;">${player.name}:</span> ${champ || "N/A"}
         </div>`;
     }
@@ -485,7 +485,7 @@ function renderPicksComparison(currentPlayer) {
             f4.push(...picks);
         }
         const isCurrent = player.id === currentPlayer.id;
-        html += `<div class="pick-item pending" style="${isCurrent ? 'border: 1px solid var(--accent); font-weight: 700;' : ''}; white-space: normal;">
+        html += `<div class="pick-item comparison-item" style="${isCurrent ? 'border: 1px solid var(--accent); font-weight: 700;' : ''}; white-space: normal;">
             <span style="min-width: 50px; font-weight: 600;">${player.name}:</span> ${f4.join(", ") || "N/A"}
         </div>`;
     }
