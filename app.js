@@ -1322,7 +1322,7 @@ function renderTrashTalkTicker() {
         const contentWidth = tickerEl.scrollWidth;
         const viewportWidth = tickerEl.parentElement.offsetWidth;
         // pixels per second - higher = faster
-        const pixelsPerSecond = 150;
+        const pixelsPerSecond = 500;
         const totalDistance = contentWidth + viewportWidth;
         const duration = totalDistance / pixelsPerSecond;
         tickerEl.style.animationDuration = duration + "s";
