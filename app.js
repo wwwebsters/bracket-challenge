@@ -133,6 +133,9 @@ async function loadApp() {
 // ===== Refresh =====
 document.getElementById("refresh-btn").addEventListener("click", loadApp);
 
+// Auto-refresh every 10 minutes
+setInterval(loadApp, 10 * 60 * 1000);
+
 function updateTimestamp() {
     const now = new Date();
     document.getElementById("last-updated").textContent =
@@ -868,7 +871,7 @@ function renderGames() {
 
     let gamesHtml = "";
 
-    // Render upcoming first
+    // Render upcoming first (always expanded)
     if (upcoming.length > 0) {
         const upcomingByRound = {};
         for (const g of upcoming) {
@@ -876,7 +879,7 @@ function renderGames() {
             upcomingByRound[g.roundDisplay].push(g);
         }
         for (const [roundName, games] of Object.entries(upcomingByRound)) {
-            gamesHtml += `<div class="game-date-header">&#128337; UPCOMING - ${roundName.toUpperCase()}</div>`;
+            gamesHtml += `<div class="game-date-header">&#128337; UPCOMING - ${roundName.toUpperCase()} (${games.length})</div>`;
             for (const game of games) {
                 gamesHtml += `
                     <div class="game-card">
@@ -898,15 +901,21 @@ function renderGames() {
         }
     }
 
-    // Render completed
+    // Render completed (collapsible — latest round expanded, older rounds collapsed)
     if (completed.length > 0) {
         const completedByRound = {};
         for (const g of completed) {
             if (!completedByRound[g.roundDisplay]) completedByRound[g.roundDisplay] = [];
             completedByRound[g.roundDisplay].push(g);
         }
-        for (const [roundName, games] of Object.entries(completedByRound)) {
-            gamesHtml += `<div class="game-date-header">&#9989; COMPLETED - ${roundName.toUpperCase()}</div>`;
+        const roundNames = Object.keys(completedByRound);
+        for (let ri = 0; ri < roundNames.length; ri++) {
+            const roundName = roundNames[ri];
+            const games = completedByRound[roundName];
+            const isLatestRound = ri === 0;
+            const sectionId = `games-section-${roundName.replace(/\s+/g, '-').toLowerCase()}`;
+            gamesHtml += `<div class="game-date-header collapsible" onclick="toggleGamesSection('${sectionId}')">&#9989; COMPLETED - ${roundName.toUpperCase()} (${games.length}) <span class="collapse-icon" id="icon-${sectionId}">${isLatestRound ? '&#9660;' : '&#9654;'}</span></div>`;
+            gamesHtml += `<div id="${sectionId}" class="games-collapsible-section" style="display: ${isLatestRound ? 'block' : 'none'};">`;
             for (const game of games) {
                 const t1Won = game.winner.toLowerCase().trim() === game.team1Name.toLowerCase().trim();
                 gamesHtml += `
@@ -942,6 +951,7 @@ function renderGames() {
                 }
                 gamesHtml += `</div><div style="margin-bottom: 12px;"></div>`;
             }
+            gamesHtml += `</div>`; // close collapsible section
         }
     }
 
@@ -950,6 +960,18 @@ function renderGames() {
     }
 
     container.innerHTML = gamesHtml;
+}
+
+function toggleGamesSection(sectionId) {
+    const section = document.getElementById(sectionId);
+    const icon = document.getElementById("icon-" + sectionId);
+    if (section.style.display === "none") {
+        section.style.display = "block";
+        icon.innerHTML = "&#9660;"; // down arrow
+    } else {
+        section.style.display = "none";
+        icon.innerHTML = "&#9654;"; // right arrow
+    }
 }
 
 // ===== Fun Stats =====

@@ -1064,6 +1064,24 @@ nav {
     margin: 24px 0 12px;
     padding-bottom: 8px;
     border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.game-date-header.collapsible {
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.2s;
+}
+.game-date-header.collapsible:hover {
+    color: var(--accent);
+}
+.collapse-icon {
+    font-size: 12px;
+    margin-left: 8px;
+}
+.games-collapsible-section {
+    overflow: hidden;
 }
 
 .no-games {
