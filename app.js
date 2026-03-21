@@ -135,7 +135,7 @@ async function loadApp() {
         renderStats();
         renderRegionMiniLeaderboards();
         renderScoreChart();
-        renderTrashTalkTicker();
+        // renderTrashTalkTicker(); // removed
         updateTimestamp();
         buildNotification();
         initShareButton();
