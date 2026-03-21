@@ -2,9 +2,8 @@ name: Update NCAA Bracket Scores
 
 on:
   schedule:
-    # Run every hour from 11 AM to 1 AM ET during tournament
-    # (UTC is ET + 4 during EDT)
-    - cron: '0 * * 3,4 *'  # Every hour in March and April
+    # Run every 30 minutes during March and April
+    - cron: '0,30 * * 3,4 *'
   workflow_dispatch:  # Allow manual trigger
 
 permissions:
