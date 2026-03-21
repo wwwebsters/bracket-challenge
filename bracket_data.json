@@ -10,31 +10,31 @@
   "standings": [
     {
       "name": "Megan",
-      "score": 27
+      "score": 29
     },
     {
       "name": "Dad",
-      "score": 26
+      "score": 28
     },
     {
       "name": "Mom",
-      "score": 26
+      "score": 28
     },
     {
       "name": "Jared",
-      "score": 26
+      "score": 28
     },
     {
       "name": "Lauren",
-      "score": 26
+      "score": 28
     },
     {
       "name": "Gavin",
-      "score": 26
+      "score": 28
     },
     {
       "name": "Molly",
-      "score": 25
+      "score": 27
     }
   ],
   "master": {
@@ -144,10 +144,10 @@
             "TCU",
             "Louisville",
             "Michigan State",
-            "St. John's",
-            "UCLA",
             "UConn",
-            "Kansas"
+            "Kansas",
+            "St. John's",
+            "UCLA"
           ],
           "Sweet 16": [],
           "Elite 8": [],
@@ -263,11 +263,13 @@
             "Arkansas",
             "TX/NC State",
             "Gonzaga",
-            "Utah State",
             "Purdue",
-            "Miami (FL)"
+            "Miami (FL)",
+            "Utah State"
           ],
-          "Sweet 16": [],
+          "Sweet 16": [
+            "TX/NC State"
+          ],
           "Elite 8": [],
           "Final Four": [],
           "Finalist": []
@@ -381,8 +383,9 @@
             "Illinois",
             "Texas A&M",
             "Houston",
-            "Iowa",
-            "Florida"
+            "PV A&M/Lehigh",
+            "Florida",
+            "Iowa"
           ],
           "Sweet 16": [],
           "Elite 8": [],
@@ -499,10 +502,14 @@
             "Kentucky",
             "Iowa State",
             "Virginia",
+            "UMBC/Howard",
+            "SMU/Miami OH",
             "Alabama",
             "Tennessee"
           ],
-          "Sweet 16": [],
+          "Sweet 16": [
+            "Michigan"
+          ],
           "Elite 8": [],
           "Final Four": [],
           "Finalist": []
@@ -516,7 +523,7 @@
       "id": "dad",
       "name": "Dad",
       "tiebreaker": "62 - 58",
-      "score": 26,
+      "score": 28,
       "regions": [
         {
           "matchups": [
@@ -1040,7 +1047,7 @@
       "id": "mom",
       "name": "Mom",
       "tiebreaker": "62 - 51",
-      "score": 26,
+      "score": 28,
       "regions": [
         {
           "matchups": [
@@ -1564,7 +1571,7 @@
       "id": "jared",
       "name": "Jared",
       "tiebreaker": "80-75",
-      "score": 26,
+      "score": 28,
       "regions": [
         {
           "matchups": [
@@ -2088,7 +2095,7 @@
       "id": "megan",
       "name": "Megan",
       "tiebreaker": "82-74",
-      "score": 27,
+      "score": 29,
       "regions": [
         {
           "matchups": [
@@ -2612,7 +2619,7 @@
       "id": "lauren",
       "name": "Lauren",
       "tiebreaker": "85 - 78",
-      "score": 26,
+      "score": 28,
       "regions": [
         {
           "matchups": [
@@ -3136,7 +3143,7 @@
       "id": "gavin",
       "name": "Gavin",
       "tiebreaker": "82-74",
-      "score": 26,
+      "score": 28,
       "regions": [
         {
           "matchups": [
@@ -3660,7 +3667,7 @@
       "id": "molly",
       "name": "Molly",
       "tiebreaker": "82-67",
-      "score": 25,
+      "score": 27,
       "regions": [
         {
           "matchups": [

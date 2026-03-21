@@ -108,35 +108,85 @@ def fetch_completed_games():
                 continue
     return completed
 
+def get_all_region_teams(region):
+    """Get all team names in a region (from matchups)."""
+    teams = []
+    for matchup in region["matchups"]:
+        teams.append(matchup[0]["name"])
+        teams.append(matchup[1]["name"])
+    return teams
+
+def find_our_name_for_espn(espn_name, all_teams):
+    """Given an ESPN team name, find the matching name from our bracket."""
+    for our_name in all_teams:
+        if espn_name_matches(espn_name, our_name):
+            return our_name
+    return None
+
+def determine_round(region, winner_name, loser_name):
+    """Determine which round a game belongs to based on which teams are playing."""
+    round_keys = ["Round of 32", "Sweet 16", "Elite 8", "Final Four", "Finalist", "Champion"]
+    # If both teams are in the previous round's winners, they're playing in the next round
+    # R64 game: both teams are original matchup teams -> winner goes to "Round of 32"
+    # R32 game: both teams are in "Round of 32" -> winner goes to "Sweet 16"
+    # etc.
+
+    # Check if both teams are R64 participants (original matchup teams)
+    all_original = get_all_region_teams(region)
+    winner_in_original = any(normalize_team_name(winner_name) == normalize_team_name(t) for t in all_original)
+    loser_in_original = any(normalize_team_name(loser_name) == normalize_team_name(t) for t in all_original)
+
+    if winner_in_original and loser_in_original:
+        # Both are original teams — check what round they're in based on previous round winners
+        # If both are in "Round of 32" winners, this is a Sweet 16 game
+        for i in range(len(round_keys) - 1, -1, -1):
+            rk = round_keys[i]
+            prev_winners = [normalize_team_name(w) for w in region["round_winners"].get(rk, [])]
+            if normalize_team_name(winner_name) in prev_winners and normalize_team_name(loser_name) in prev_winners:
+                # Both in this round's winners, so result goes to next round
+                if i + 1 < len(round_keys):
+                    return round_keys[i + 1]
+        # Neither found in any round winners — this is an R64 game, winner goes to "Round of 32"
+        return "Round of 32"
+    return None
+
 def update_master_bracket(bracket_data, completed_games):
     master = bracket_data["master"]
     updated = False
+    round_keys = ["Round of 32", "Sweet 16", "Elite 8", "Final Four", "Finalist", "Champion"]
+
     for game in completed_games:
         for region in master["regions"]:
-            for matchup in region["matchups"]:
-                team1_name = matchup[0]["name"]
-                team2_name = matchup[1]["name"]
-                game_matches = (
-                    (espn_name_matches(game["team1"], team1_name) or espn_name_matches(game["team2"], team1_name)) and
-                    (espn_name_matches(game["team1"], team2_name) or espn_name_matches(game["team2"], team2_name))
-                )
-                if game_matches:
-                    matched_winner = None
-                    if espn_name_matches(game["winner"], team1_name):
-                        matched_winner = team1_name
-                    elif espn_name_matches(game["winner"], team2_name):
-                        matched_winner = team2_name
-                    if matched_winner:
-                        r32_winners = region["round_winners"].get("Round of 32", [])
-                        already_recorded = any(
-                            normalize_team_name(w) == normalize_team_name(matched_winner)
-                            for w in r32_winners
-                        )
-                        if not already_recorded:
-                            r32_winners.append(matched_winner)
-                            region["round_winners"]["Round of 32"] = r32_winners
-                            log(f"Updated: {matched_winner} won in {region['name']} (R64)")
-                            updated = True
+            all_teams = get_all_region_teams(region)
+
+            # Try to match both ESPN teams to our bracket names
+            our_winner = find_our_name_for_espn(game["winner"], all_teams)
+            our_loser_name = None
+            loser_espn = game["team1"] if game["winner"] != game["team1"] else game["team2"]
+            our_loser = find_our_name_for_espn(loser_espn, all_teams)
+
+            if not our_winner or not our_loser:
+                continue
+
+            # Determine which round this result belongs to
+            target_round = determine_round(region, our_winner, our_loser)
+            if not target_round:
+                continue
+
+            round_winners = region["round_winners"].get(target_round, [])
+            already_recorded = any(
+                normalize_team_name(w) == normalize_team_name(our_winner)
+                for w in round_winners
+            )
+            if not already_recorded:
+                round_winners.append(our_winner)
+                region["round_winners"][target_round] = round_winners
+                log(f"Updated: {our_winner} won in {region['name']} ({target_round})")
+                updated = True
+
+    # Handle Final Four, Finals, Championship (cross-region games)
+    # These will be added when those rounds begin
+
     return updated
 
 def recalculate_scores(bracket_data):
