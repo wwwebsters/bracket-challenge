@@ -16,25 +16,43 @@ DATA_FILE = os.path.join(SCRIPT_DIR, "bracket_data.json")
 ESPN_SCOREBOARD_URL = "https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard?groups=100&limit=100&dates={date}"
 
 TEAM_NAME_MAP = {
-    "pv a&m/lehigh": ["prairie view a&m", "lehigh", "prairie view", "pv a&m"],
-    "umbc/howard": ["umbc", "howard"],
-    "tx/nc state": ["texas", "nc state", "north carolina state"],
-    "smu/miami oh": ["smu", "miami (oh)", "miami ohio", "miami oh"],
-    "n. dakota state": ["north dakota state", "north dakota st", "ndsu"],
-    "st. john's": ["st. john's (ny)", "st john's", "saint john's"],
-    "cal baptist": ["california baptist"],
-    "northern iowa": ["northern iowa", "uni"],
-    "michigan state": ["michigan state", "michigan st"],
-    "saint mary's": ["saint mary's (ca)", "saint mary's", "st. mary's"],
+    "pv a&m/lehigh": ["prairie view a&m", "prairie view a&m panthers", "lehigh", "lehigh mountain hawks", "prairie view", "pv a&m"],
+    "umbc/howard": ["umbc", "umbc retrievers", "howard", "howard bison"],
+    "tx/nc state": ["texas", "texas longhorns", "nc state", "nc state wolfpack", "north carolina state"],
+    "smu/miami oh": ["smu", "smu mustangs", "miami (oh)", "miami (oh) redhawks", "miami ohio", "miami oh"],
+    "n. dakota state": ["north dakota state", "north dakota state bison", "north dakota st", "ndsu"],
+    "st. john's": ["st. john's (ny)", "st john's", "saint john's", "st. john's red storm"],
+    "cal baptist": ["california baptist", "california baptist lancers"],
+    "northern iowa": ["northern iowa", "northern iowa panthers", "uni"],
+    "michigan state": ["michigan state", "michigan state spartans", "michigan st"],
+    "saint mary's": ["saint mary's (ca)", "saint mary's", "st. mary's", "saint mary's gaels"],
     "miami (fl)": ["miami", "miami hurricanes"],
-    "tennessee state": ["tennessee state", "tennessee st"],
-    "wright state": ["wright state"],
-    "kennesaw state": ["kennesaw state", "kennesaw st"],
-    "iowa state": ["iowa state", "iowa st"],
-    "ohio state": ["ohio state", "ohio st"],
-    "texas a&m": ["texas a&m"],
-    "south florida": ["south florida", "usf"],
-    "santa clara": ["santa clara"],
+    "tennessee state": ["tennessee state", "tennessee state tigers", "tennessee st"],
+    "wright state": ["wright state", "wright state raiders"],
+    "kennesaw state": ["kennesaw state", "kennesaw state owls", "kennesaw st"],
+    "iowa state": ["iowa state", "iowa state cyclones", "iowa st"],
+    "ohio state": ["ohio state", "ohio state buckeyes", "ohio st"],
+    "texas a&m": ["texas a&m", "texas a&m aggies"],
+    "south florida": ["south florida", "south florida bulls", "usf"],
+    "santa clara": ["santa clara", "santa clara broncos"],
+    "hawaii": ["hawai'i", "hawai'i rainbow warriors", "hawaii rainbow warriors"],
+    "liu": ["long island university", "long island university sharks", "liu sharks"],
+    "mcneese": ["mcneese", "mcneese cowboys", "mcneese state"],
+    "penn": ["pennsylvania", "pennsylvania quakers", "penn quakers"],
+    "queens": ["queens university", "queens university royals"],
+}
+
+# Map ESPN round labels to our round_winners keys
+ESPN_ROUND_MAP = {
+    "1st round": "Round of 32",
+    "2nd round": "Sweet 16",
+    "sweet 16": "Elite 8",
+    "elite eight": "Final Four",
+    "elite 8": "Final Four",
+    "semifinal": "Finalist",
+    "final four": "Finalist",
+    "national championship": "Champion",
+    "championship": "Champion",
 }
 
 def log(msg):
@@ -53,18 +71,26 @@ def fetch_json(url):
         return None
 
 def normalize_team_name(name):
-    return name.lower().strip().replace("'", "'").replace("\u2019", "'")
+    return name.lower().strip().replace("\u2019", "'").replace("\u2018", "'")
+
+def word_boundary_match(needle, haystack):
+    """Check if needle appears as a whole word/phrase in haystack (not as substring of another word)."""
+    import re
+    pattern = r'(?:^|\b)' + re.escape(needle) + r'(?:\b|$)'
+    return bool(re.search(pattern, haystack))
 
 def espn_name_matches(espn_name, our_name):
     espn_lower = normalize_team_name(espn_name)
     our_lower = normalize_team_name(our_name)
     if espn_lower == our_lower:
         return True
-    if espn_lower in our_lower or our_lower in espn_lower:
+    # Use word-boundary matching to avoid "kansas" matching "arkansas"
+    if word_boundary_match(our_lower, espn_lower) or word_boundary_match(espn_lower, our_lower):
         return True
     aliases = TEAM_NAME_MAP.get(our_lower, [])
     for alias in aliases:
-        if normalize_team_name(alias) == espn_lower or normalize_team_name(alias) in espn_lower:
+        a = normalize_team_name(alias)
+        if a == espn_lower or word_boundary_match(a, espn_lower) or word_boundary_match(espn_lower, a):
             return True
     return False
 
@@ -99,17 +125,25 @@ def fetch_completed_games():
                 team2_name = teams[1]["team"]["displayName"]
                 team2_score = int(teams[1]["score"])
                 winner_name = team1_name if team1_score > team2_score else team2_name
+
+                # Extract round from notes
+                notes = competition.get("notes", [])
+                note = notes[0].get("headline", "") if notes else ""
+                espn_round = ""
+                if " - " in note:
+                    espn_round = note.split(" - ")[-1].strip().lower()
+
                 completed.append({
                     "team1": team1_name, "team1_score": team1_score,
                     "team2": team2_name, "team2_score": team2_score,
                     "winner": winner_name, "date": date,
+                    "espn_round": espn_round,
                 })
             except (KeyError, IndexError):
                 continue
     return completed
 
 def get_all_region_teams(region):
-    """Get all team names in a region (from matchups)."""
     teams = []
     for matchup in region["matchups"]:
         teams.append(matchup[0]["name"])
@@ -117,60 +151,32 @@ def get_all_region_teams(region):
     return teams
 
 def find_our_name_for_espn(espn_name, all_teams):
-    """Given an ESPN team name, find the matching name from our bracket."""
     for our_name in all_teams:
         if espn_name_matches(espn_name, our_name):
             return our_name
     return None
 
-def determine_round(region, winner_name, loser_name):
-    """Determine which round a game belongs to based on which teams are playing."""
-    round_keys = ["Round of 32", "Sweet 16", "Elite 8", "Final Four", "Finalist", "Champion"]
-    # If both teams are in the previous round's winners, they're playing in the next round
-    # R64 game: both teams are original matchup teams -> winner goes to "Round of 32"
-    # R32 game: both teams are in "Round of 32" -> winner goes to "Sweet 16"
-    # etc.
-
-    # Check if both teams are R64 participants (original matchup teams)
-    all_original = get_all_region_teams(region)
-    winner_in_original = any(normalize_team_name(winner_name) == normalize_team_name(t) for t in all_original)
-    loser_in_original = any(normalize_team_name(loser_name) == normalize_team_name(t) for t in all_original)
-
-    if winner_in_original and loser_in_original:
-        # Both are original teams — check what round they're in based on previous round winners
-        # If both are in "Round of 32" winners, this is a Sweet 16 game
-        for i in range(len(round_keys) - 1, -1, -1):
-            rk = round_keys[i]
-            prev_winners = [normalize_team_name(w) for w in region["round_winners"].get(rk, [])]
-            if normalize_team_name(winner_name) in prev_winners and normalize_team_name(loser_name) in prev_winners:
-                # Both in this round's winners, so result goes to next round
-                if i + 1 < len(round_keys):
-                    return round_keys[i + 1]
-        # Neither found in any round winners — this is an R64 game, winner goes to "Round of 32"
-        return "Round of 32"
-    return None
-
 def update_master_bracket(bracket_data, completed_games):
     master = bracket_data["master"]
     updated = False
-    round_keys = ["Round of 32", "Sweet 16", "Elite 8", "Final Four", "Finalist", "Champion"]
 
     for game in completed_games:
+        # Skip First Four games — they don't correspond to bracket matchup wins
+        if "first four" in game["espn_round"]:
+            continue
+
+        # Determine which of our round_winners keys this maps to
+        target_round = ESPN_ROUND_MAP.get(game["espn_round"])
+        if not target_round:
+            log(f"Unknown ESPN round: '{game['espn_round']}' for {game['winner']} — skipping")
+            continue
+
+        # Find which region this game belongs to by matching the winner
         for region in master["regions"]:
             all_teams = get_all_region_teams(region)
-
-            # Try to match both ESPN teams to our bracket names
             our_winner = find_our_name_for_espn(game["winner"], all_teams)
-            our_loser_name = None
-            loser_espn = game["team1"] if game["winner"] != game["team1"] else game["team2"]
-            our_loser = find_our_name_for_espn(loser_espn, all_teams)
 
-            if not our_winner or not our_loser:
-                continue
-
-            # Determine which round this result belongs to
-            target_round = determine_round(region, our_winner, our_loser)
-            if not target_round:
+            if not our_winner:
                 continue
 
             round_winners = region["round_winners"].get(target_round, [])
@@ -183,9 +189,7 @@ def update_master_bracket(bracket_data, completed_games):
                 region["round_winners"][target_round] = round_winners
                 log(f"Updated: {our_winner} won in {region['name']} ({target_round})")
                 updated = True
-
-    # Handle Final Four, Finals, Championship (cross-region games)
-    # These will be added when those rounds begin
+            break  # Found the region, no need to check others
 
     return updated
 

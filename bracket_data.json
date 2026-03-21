@@ -9,32 +9,32 @@
   },
   "standings": [
     {
-      "name": "Megan",
-      "score": 36
-    },
-    {
       "name": "Dad",
-      "score": 35
+      "score": 26
     },
     {
-      "name": "Jared",
-      "score": 35
-    },
-    {
-      "name": "Gavin",
-      "score": 35
-    },
-    {
-      "name": "Mom",
-      "score": 33
+      "name": "Megan",
+      "score": 26
     },
     {
       "name": "Lauren",
-      "score": 33
+      "score": 26
+    },
+    {
+      "name": "Gavin",
+      "score": 26
+    },
+    {
+      "name": "Mom",
+      "score": 25
+    },
+    {
+      "name": "Jared",
+      "score": 25
     },
     {
       "name": "Molly",
-      "score": 32
+      "score": 25
     }
   ],
   "master": {
@@ -141,9 +141,9 @@
         "round_winners": {
           "Round of 32": [
             "Duke",
-            "TCU",
-            "Louisville",
             "Michigan State",
+            "Louisville",
+            "TCU",
             "UConn",
             "Kansas",
             "St. John's",
@@ -258,21 +258,17 @@
         ],
         "round_winners": {
           "Round of 32": [
-            "Arizona",
-            "High Point",
-            "Arkansas",
-            "TX/NC State",
             "Gonzaga",
+            "Arkansas",
+            "High Point",
+            "TX/NC State",
+            "Arizona",
             "Purdue",
             "Miami (FL)",
             "Utah State"
           ],
-          "Sweet 16": [
-            "TX/NC State"
-          ],
-          "Elite 8": [
-            "TX/NC State"
-          ],
+          "Sweet 16": [],
+          "Elite 8": [],
           "Final Four": [],
           "Finalist": []
         },
@@ -379,13 +375,11 @@
         ],
         "round_winners": {
           "Round of 32": [
-            "Vanderbilt",
-            "Nebraska",
-            "VCU",
-            "Illinois",
-            "Texas A&M",
             "Houston",
-            "PV A&M/Lehigh",
+            "Illinois",
+            "Nebraska",
+            "Vanderbilt",
+            "VCU",
             "Florida",
             "Iowa"
           ],
@@ -503,14 +497,10 @@
           "Round of 32": [
             "Michigan",
             "Saint Louis",
-            "Texas Tech",
-            "Kentucky",
-            "Iowa State",
             "Virginia",
-            "UMBC/Howard",
-            "SMU/Miami OH",
             "Alabama",
-            "Tennessee"
+            "Tennessee",
+            "Kentucky"
           ],
           "Sweet 16": [
             "Michigan",
@@ -534,7 +524,7 @@
       "id": "dad",
       "name": "Dad",
       "tiebreaker": "62 - 58",
-      "score": 35,
+      "score": 26,
       "regions": [
         {
           "matchups": [
@@ -1058,7 +1048,7 @@
       "id": "mom",
       "name": "Mom",
       "tiebreaker": "62 - 51",
-      "score": 33,
+      "score": 25,
       "regions": [
         {
           "matchups": [
@@ -1582,7 +1572,7 @@
       "id": "jared",
       "name": "Jared",
       "tiebreaker": "80-75",
-      "score": 35,
+      "score": 25,
       "regions": [
         {
           "matchups": [
@@ -2106,7 +2096,7 @@
       "id": "megan",
       "name": "Megan",
       "tiebreaker": "82-74",
-      "score": 36,
+      "score": 26,
       "regions": [
         {
           "matchups": [
@@ -2630,7 +2620,7 @@
       "id": "lauren",
       "name": "Lauren",
       "tiebreaker": "85 - 78",
-      "score": 33,
+      "score": 26,
       "regions": [
         {
           "matchups": [
@@ -3154,7 +3144,7 @@
       "id": "gavin",
       "name": "Gavin",
       "tiebreaker": "82-74",
-      "score": 35,
+      "score": 26,
       "regions": [
         {
           "matchups": [
@@ -3678,7 +3668,7 @@
       "id": "molly",
       "name": "Molly",
       "tiebreaker": "82-67",
-      "score": 32,
+      "score": 25,
       "regions": [
         {
           "matchups": [
