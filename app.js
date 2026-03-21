@@ -1314,8 +1314,8 @@ function renderTrashTalkTicker() {
     const allMessages = [...messages, ...messages];
     tickerEl.innerHTML = allMessages.map(m => `<span>${m}</span>`).join("");
 
-    // Adjust animation duration based on message count
-    const duration = Math.max(messages.length * 5, 30);
+    // Adjust animation duration based on message count (fast scroll)
+    const duration = Math.max(messages.length * 1.5, 8);
     tickerEl.style.animationDuration = duration + "s";
 
     document.getElementById("trash-talk-ticker").classList.remove("hidden");
