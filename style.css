@@ -1478,7 +1478,7 @@ footer {
     display: flex;
     gap: 60px;
     white-space: nowrap;
-    animation: tickerScroll 18s linear infinite;
+    animation: tickerScroll 6s linear infinite;
     padding-left: 100%;
 }
 
