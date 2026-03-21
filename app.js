@@ -1314,11 +1314,19 @@ function renderTrashTalkTicker() {
     const allMessages = [...messages, ...messages];
     tickerEl.innerHTML = allMessages.map(m => `<span>${m}</span>`).join("");
 
-    // Adjust animation duration based on message count (fast scroll)
-    const duration = Math.max(messages.length * 1.5, 8);
-    tickerEl.style.animationDuration = duration + "s";
-
+    // Show ticker, then measure actual width to calculate proper speed
     document.getElementById("trash-talk-ticker").classList.remove("hidden");
+
+    // Wait a frame so the browser lays out the content, then set speed
+    requestAnimationFrame(() => {
+        const contentWidth = tickerEl.scrollWidth;
+        const viewportWidth = tickerEl.parentElement.offsetWidth;
+        // pixels per second - higher = faster
+        const pixelsPerSecond = 150;
+        const totalDistance = contentWidth + viewportWidth;
+        const duration = totalDistance / pixelsPerSecond;
+        tickerEl.style.animationDuration = duration + "s";
+    });
 }
 
 // ===== Feature 2: Bracket Busted Meter =====
