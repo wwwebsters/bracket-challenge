@@ -1440,3 +1440,295 @@ footer {
 .pick-item.comparison-item::before {
     content: none;
 }
+
+/* ===== Feature: Trash Talk Ticker ===== */
+.trash-talk-ticker {
+    position: relative;
+    background: linear-gradient(135deg, #1a1030 0%, #0d0a1a 50%, #1a1030 100%);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    height: 44px;
+}
+
+:root.light .trash-talk-ticker {
+    background: linear-gradient(135deg, #e2e0f0 0%, #d5d0e8 50%, #e2e0f0 100%);
+}
+
+.ticker-label {
+    flex-shrink: 0;
+    padding: 0 12px;
+    font-size: 22px;
+    background: linear-gradient(135deg, var(--accent), #ea580c);
+    height: 100%;
+    display: flex;
+    align-items: center;
+    z-index: 2;
+}
+
+.ticker-track {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+}
+
+.ticker-content {
+    display: flex;
+    gap: 60px;
+    white-space: nowrap;
+    animation: tickerScroll 40s linear infinite;
+    padding-left: 100%;
+}
+
+.ticker-content span {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    flex-shrink: 0;
+}
+
+@keyframes tickerScroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+
+/* ===== Feature: Share Button ===== */
+.share-btn {
+    padding: 8px 16px;
+    border: 1px solid var(--border);
+    border-radius: 50px;
+    background: var(--bg-card);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.share-btn:hover {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+    transform: translateY(-1px);
+}
+
+.share-btn.copied {
+    background: var(--correct);
+    border-color: var(--correct);
+    color: white;
+}
+
+/* ===== Feature: Daily Recap ===== */
+.daily-recap-card {
+    background: linear-gradient(135deg, rgba(59,130,246,0.08) 0%, rgba(249,115,22,0.06) 100%);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 24px;
+    animation: slideDown 0.4s ease-out;
+}
+
+.daily-recap-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--accent);
+}
+
+.daily-recap-close {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+}
+
+.daily-recap-close:hover { color: var(--text); }
+
+.daily-recap-body {
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--text);
+}
+
+.daily-recap-body p {
+    margin-bottom: 6px;
+}
+
+/* ===== Feature: Bracket Busted Meter ===== */
+#bracket-busted-meter {
+    margin-top: 32px;
+    margin-bottom: 8px;
+}
+
+.busted-header {
+    font-family: var(--font-display);
+    font-size: 24px;
+    letter-spacing: 2px;
+    margin-bottom: 16px;
+    color: var(--accent);
+}
+
+.busted-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 12px;
+}
+
+.busted-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px 20px;
+    transition: all 0.2s;
+}
+
+.busted-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.busted-name {
+    font-weight: 700;
+    font-size: 15px;
+}
+
+.busted-icon {
+    font-size: 24px;
+}
+
+.busted-bar-track {
+    height: 20px;
+    background: var(--wrong-bg);
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+    margin-bottom: 6px;
+    border: 1px solid var(--border);
+}
+
+.busted-bar-fill {
+    height: 100%;
+    border-radius: 10px;
+    background: linear-gradient(90deg, var(--correct), #16a34a);
+    transition: width 0.6s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    color: white;
+    min-width: 24px;
+}
+
+.busted-bar-fill.danger {
+    background: linear-gradient(90deg, var(--wrong), #dc2626);
+}
+
+.busted-detail {
+    font-size: 12px;
+    color: var(--text-dim);
+}
+
+/* ===== Feature: Region Mini Leaderboards ===== */
+#region-mini-leaderboards {
+    margin-bottom: 24px;
+}
+
+.region-mini-header {
+    font-family: var(--font-display);
+    font-size: 24px;
+    letter-spacing: 2px;
+    margin-bottom: 16px;
+    color: var(--accent);
+}
+
+.region-mini-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+}
+
+.region-mini-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    transition: all 0.2s;
+}
+
+.region-mini-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+}
+
+.region-mini-title {
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--accent);
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+}
+
+.region-mini-list {
+    list-style: none;
+}
+
+.region-mini-list li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 0;
+    font-size: 12px;
+    color: var(--text);
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+.region-mini-list li:last-child { border-bottom: none; }
+
+.region-mini-list li.leader {
+    font-weight: 700;
+    color: var(--gold);
+}
+
+.region-mini-rank {
+    color: var(--text-dim);
+    min-width: 20px;
+    font-weight: 600;
+}
+
+.region-mini-score {
+    font-weight: 700;
+    color: var(--accent);
+    min-width: 30px;
+    text-align: right;
+}
+
+/* ===== Responsive additions for new features ===== */
+@media (max-width: 768px) {
+    .trash-talk-ticker { height: 36px; }
+    .ticker-content span { font-size: 12px; }
+    .ticker-label { font-size: 18px; padding: 0 8px; }
+    .busted-grid { grid-template-columns: 1fr; }
+    .region-mini-grid { grid-template-columns: 1fr; }
+    .daily-recap-card { padding: 14px; }
+    .daily-recap-header { font-size: 16px; }
+    .daily-recap-body { font-size: 13px; }
+    .share-btn { padding: 6px 12px; font-size: 12px; }
+    .leaderboard-header { gap: 8px; }
+}

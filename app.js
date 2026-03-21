@@ -125,15 +125,20 @@ async function loadApp() {
     try {
         const resp = await fetch("bracket_data.json?t=" + Date.now());
         bracketData = await resp.json();
+        renderDailyRecap();
         renderLeaderboard();
+        renderBracketBustedMeter();
         renderEliminationTracker();
         renderBracketSelector();
         renderH2HSelectors();
         renderGames();
         renderStats();
+        renderRegionMiniLeaderboards();
         renderScoreChart();
+        renderTrashTalkTicker();
         updateTimestamp();
         buildNotification();
+        initShareButton();
 
         // Confetti on load if viewing leaderboard
         const leaderboardActive = document.getElementById("view-leaderboard").classList.contains("active");
@@ -1150,4 +1155,443 @@ function renderScoreChart() {
         legendHtml += `<div class="legend-entry"><div class="legend-swatch" style="background: ${pd.color}"></div>${pd.name}</div>`;
     }
     legendContainer.innerHTML = legendHtml;
+}
+
+// ===== Feature 1: Trash Talk Ticker =====
+function renderTrashTalkTicker() {
+    const participants = bracketData.participants;
+    const master = bracketData.master;
+    const sorted = [...participants].sort((a, b) => b.score - a.score);
+    const roundKeys = ["Round of 32", "Sweet 16", "Elite 8", "Final Four", "Finalist", "Champion"];
+    const roundLabels = ["R32", "S16", "E8", "F4", "Finals", "Champ"];
+    const messages = [];
+
+    // Leader running away
+    if (sorted.length >= 2) {
+        const gap = sorted[0].score - sorted[1].score;
+        if (gap >= 3) {
+            messages.push(`${sorted[0].name} is running away with it \u2014 everyone else pack it up \ud83c\udfc3`);
+        }
+    }
+
+    // Tied leaders
+    if (sorted.length >= 2 && sorted[0].score === sorted[1].score) {
+        const tiedNames = sorted.filter(p => p.score === sorted[0].score).map(p => p.name);
+        if (tiedNames.length === 2) {
+            messages.push(`${tiedNames[0]} and ${tiedNames[1]} are tied \u2014 this is going to be close! \ud83d\udd25`);
+        } else {
+            messages.push(`${tiedNames.length}-way tie at the top! It's anyone's game \ud83d\udd25`);
+        }
+    }
+
+    // Champion pick that lost early
+    for (const p of participants) {
+        let champPick = "";
+        for (const region of p.regions) {
+            const c = region.round_winners["Champion"] || [];
+            if (c.length > 0) champPick = c[0];
+        }
+        if (champPick) {
+            let eliminated = false;
+            for (const mRegion of master.regions) {
+                if (isTeamEliminated(champPick.toLowerCase().trim(), mRegion)) {
+                    const inRegion = mRegion.matchups.some(m => m.some(t => t.name.toLowerCase().trim() === champPick.toLowerCase().trim()));
+                    if (inRegion) { eliminated = true; break; }
+                }
+            }
+            if (eliminated) {
+                messages.push(`${p.name} picked ${champPick} to win it all... they got eliminated \ud83d\ude2c`);
+            }
+        }
+    }
+
+    // Worst round picks
+    for (const p of participants) {
+        for (let rki = 0; rki < roundKeys.length; rki++) {
+            const rk = roundKeys[rki];
+            let wrongCount = 0;
+            let totalPicks = 0;
+            for (let ri = 0; ri < 4; ri++) {
+                const region = p.regions[ri];
+                const masterRegion = master.regions[ri];
+                const picks = region.round_winners[rk] || [];
+                const masterWinners = (masterRegion.round_winners[rk] || []).map(w => w.toLowerCase().trim());
+                if (masterWinners.length === 0) continue;
+                for (const pick of picks) {
+                    totalPicks++;
+                    if (!masterWinners.includes(pick.toLowerCase().trim())) wrongCount++;
+                }
+            }
+            if (totalPicks > 0 && wrongCount >= 5) {
+                messages.push(`${p.name} has ${wrongCount} wrong picks in ${roundLabels[rki]}... yikes \ud83d\ude02`);
+                break;
+            }
+        }
+    }
+
+    // Only N people picked upset winner
+    for (const mRegion of master.regions) {
+        const r32Winners = mRegion.round_winners["Round of 32"] || [];
+        for (const winner of r32Winners) {
+            const seed = findTeamSeed(winner, mRegion);
+            if (seed && parseInt(seed) >= 10) {
+                const whoPickedIt = [];
+                for (const p of participants) {
+                    const pRegion = p.regions.find(r => r.name === mRegion.name);
+                    if (!pRegion) continue;
+                    const picks = pRegion.round_winners["Round of 32"] || [];
+                    if (picks.some(pk => pk.toLowerCase().trim() === winner.toLowerCase().trim())) {
+                        whoPickedIt.push(p.name);
+                    }
+                }
+                if (whoPickedIt.length <= 2 && whoPickedIt.length > 0) {
+                    messages.push(`Only ${whoPickedIt.length} ${whoPickedIt.length === 1 ? 'person' : 'people'} picked ${winner} \u2014 ${whoPickedIt.join(" & ")} ${whoPickedIt.length === 1 ? 'was' : 'were'} ${whoPickedIt.length === 1 ? 'one of them' : 'the ones'} \ud83e\udde0`);
+                }
+            }
+        }
+    }
+
+    // Chalk picker
+    const chalkScores = {};
+    for (const p of participants) {
+        chalkScores[p.id] = { name: p.name, chalk: 0 };
+        for (const rk of roundKeys) {
+            for (const region of p.regions) {
+                const picks = region.round_winners[rk] || [];
+                for (const pick of picks) {
+                    const seed = findTeamSeed(pick, region);
+                    if (seed && parseInt(seed) >= 1 && parseInt(seed) <= 2) chalkScores[p.id].chalk++;
+                }
+            }
+        }
+    }
+    const chalkKing = Object.values(chalkScores).sort((a, b) => b.chalk - a.chalk)[0];
+    if (chalkKing && chalkKing.chalk > 0) {
+        messages.push(`${chalkKing.name} picked the most chalk \u2014 playing it safe! \ud83d\udccf`);
+    }
+
+    // Contrarian
+    const contrarianScores = {};
+    for (const p of participants) {
+        contrarianScores[p.id] = { name: p.name, uniquePicks: 0 };
+        for (const rk of roundKeys) {
+            for (const region of p.regions) {
+                const picks = region.round_winners[rk] || [];
+                for (const pick of picks) {
+                    const pickLower = pick.toLowerCase().trim();
+                    let othersPicked = false;
+                    for (const op of participants) {
+                        if (op.id === p.id) continue;
+                        for (const or2 of op.regions) {
+                            if ((or2.round_winners[rk] || []).some(op2 => op2.toLowerCase().trim() === pickLower)) {
+                                othersPicked = true; break;
+                            }
+                        }
+                        if (othersPicked) break;
+                    }
+                    if (!othersPicked) contrarianScores[p.id].uniquePicks++;
+                }
+            }
+        }
+    }
+    const contrarian = Object.values(contrarianScores).sort((a, b) => b.uniquePicks - a.uniquePicks)[0];
+    if (contrarian && contrarian.uniquePicks > 0) {
+        messages.push(`${contrarian.name} is the biggest contrarian with ${contrarian.uniquePicks} unique picks \ud83d\ude0e`);
+    }
+
+    // Last place roast
+    if (sorted.length >= 2) {
+        const last = sorted[sorted.length - 1];
+        messages.push(`${last.name} is bringing up the rear with ${last.score} points \u2014 there's always next year \ud83e\udea6`);
+    }
+
+    if (messages.length === 0) {
+        messages.push("The tournament is just getting started \u2014 let the chaos begin! \ud83c\udf1a");
+    }
+
+    // Duplicate messages for seamless loop
+    const tickerEl = document.getElementById("ticker-content");
+    const allMessages = [...messages, ...messages];
+    tickerEl.innerHTML = allMessages.map(m => `<span>${m}</span>`).join("");
+
+    // Adjust animation duration based on message count
+    const duration = Math.max(messages.length * 5, 30);
+    tickerEl.style.animationDuration = duration + "s";
+
+    document.getElementById("trash-talk-ticker").classList.remove("hidden");
+}
+
+// ===== Feature 2: Bracket Busted Meter =====
+function renderBracketBustedMeter() {
+    const container = document.getElementById("bracket-busted-meter");
+    const participants = bracketData.participants;
+    const master = bracketData.master;
+    const roundKeys = ["Round of 32", "Sweet 16", "Elite 8", "Final Four", "Finalist", "Champion"];
+
+    // For each participant, count alive vs eliminated remaining picks
+    const bustedData = participants.map(p => {
+        let alive = 0;
+        let eliminated = 0;
+        let total = 0;
+
+        for (let ri = 0; ri < 4; ri++) {
+            const pickRegion = p.regions[ri];
+            const masterRegion = master.regions[ri];
+
+            for (const rk of roundKeys) {
+                const picks = pickRegion.round_winners[rk] || [];
+                const masterWinners = (masterRegion.round_winners[rk] || []).map(w => w.toLowerCase().trim());
+
+                for (const pick of picks) {
+                    const pickLower = pick.toLowerCase().trim();
+                    // Skip already scored correct picks
+                    if (masterWinners.includes(pickLower)) continue;
+                    total++;
+                    if (isTeamEliminated(pickLower, masterRegion)) {
+                        eliminated++;
+                    } else {
+                        alive++;
+                    }
+                }
+            }
+        }
+
+        const bustedPct = total > 0 ? Math.round((eliminated / total) * 100) : 0;
+        let icon = "\ud83d\udcaa"; // flexed biceps
+        if (bustedPct > 70) icon = "\ud83d\udc80"; // skull
+        else if (bustedPct > 50) icon = "\ud83d\ude30"; // anxious face
+
+        return { name: p.name, alive, eliminated, total, bustedPct, icon };
+    });
+
+    // Sort by most busted
+    bustedData.sort((a, b) => b.bustedPct - a.bustedPct);
+
+    let html = `<div class="busted-header">\ud83c\udfe5 BRACKET HEALTH CHECK</div>`;
+    html += `<div class="busted-grid">`;
+
+    for (const d of bustedData) {
+        const alivePct = d.total > 0 ? Math.round((d.alive / d.total) * 100) : 100;
+        const barClass = alivePct < 30 ? "danger" : "";
+        html += `
+            <div class="busted-card">
+                <div class="busted-card-top">
+                    <span class="busted-name">${d.name}</span>
+                    <span class="busted-icon">${d.icon}</span>
+                </div>
+                <div class="busted-bar-track">
+                    <div class="busted-bar-fill ${barClass}" style="width: ${Math.max(alivePct, 5)}%">${alivePct}%</div>
+                </div>
+                <div class="busted-detail">${d.alive} alive / ${d.eliminated} eliminated out of ${d.total} remaining picks</div>
+            </div>
+        `;
+    }
+
+    html += `</div>`;
+    container.innerHTML = html;
+}
+
+// ===== Feature 3: Region-by-Region Mini Leaderboard =====
+function renderRegionMiniLeaderboards() {
+    const container = document.getElementById("region-mini-leaderboards");
+    const participants = bracketData.participants;
+    const master = bracketData.master;
+    const roundKeys = ["Round of 32", "Sweet 16", "Elite 8", "Final Four", "Finalist", "Champion"];
+    const scoringValues = Object.values(bracketData.scoring);
+    const regionNames = master.regions.map(r => r.name);
+
+    let html = `<div class="region-mini-header">\ud83c\udfc0 REGION-BY-REGION LEADERBOARD</div>`;
+    html += `<div class="region-mini-grid">`;
+
+    for (let ri = 0; ri < 4; ri++) {
+        const regionName = regionNames[ri];
+        const masterRegion = master.regions[ri];
+
+        // Calculate each participant's score in this region
+        const regionScores = participants.map(p => {
+            let score = 0;
+            const pickRegion = p.regions[ri];
+            for (let rki = 0; rki < roundKeys.length; rki++) {
+                const rk = roundKeys[rki];
+                const masterWinners = (masterRegion.round_winners[rk] || []).map(w => w.toLowerCase().trim());
+                const picks = pickRegion.round_winners[rk] || [];
+                for (const pick of picks) {
+                    if (masterWinners.includes(pick.toLowerCase().trim())) {
+                        score += scoringValues[rki] || 0;
+                    }
+                }
+            }
+            return { name: p.name, score };
+        });
+
+        regionScores.sort((a, b) => b.score - a.score);
+
+        html += `<div class="region-mini-card">`;
+        html += `<div class="region-mini-title">${regionName}</div>`;
+        html += `<ul class="region-mini-list">`;
+
+        regionScores.forEach((rs, idx) => {
+            const isLeader = idx === 0 && rs.score > 0;
+            html += `<li class="${isLeader ? 'leader' : ''}">
+                <span><span class="region-mini-rank">${idx + 1}.</span> ${rs.name}</span>
+                <span class="region-mini-score">${rs.score} pts</span>
+            </li>`;
+        });
+
+        html += `</ul></div>`;
+    }
+
+    html += `</div>`;
+    container.innerHTML = html;
+}
+
+// ===== Feature 4: Screenshot/Share Button =====
+function initShareButton() {
+    const btn = document.getElementById("share-btn");
+    if (!btn) return;
+    btn.addEventListener("click", () => {
+        const sorted = [...bracketData.participants].sort((a, b) => b.score - a.score);
+        let rank = 1;
+        sorted.forEach((p, i) => {
+            if (i > 0 && p.score < sorted[i - 1].score) rank = i + 1;
+            p.rank = rank;
+        });
+
+        const medals = ["\ud83e\udd47", "\ud83e\udd48", "\ud83e\udd49"];
+        const now = new Date();
+        const timestamp = now.toLocaleDateString() + " " + now.toLocaleTimeString();
+
+        let text = "\ud83c\udfc0 WEBSTER FAMILY BRACKET CHALLENGE 2026 \ud83c\udfc0\n";
+        text += "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n";
+
+        for (const p of sorted) {
+            const medal = p.rank <= 3 ? medals[p.rank - 1] + " " : "   ";
+            const maxP = calculateMaxPossible(p);
+            text += `${medal}#${p.rank} ${p.name}: ${p.score} pts (max ${maxP})\n`;
+        }
+
+        text += "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n";
+        text += `Updated: ${timestamp}\n`;
+
+        navigator.clipboard.writeText(text).then(() => {
+            btn.innerHTML = "\ud83d\udccb Copied!";
+            btn.classList.add("copied");
+            setTimeout(() => {
+                btn.innerHTML = "\ud83d\udcf8 Share";
+                btn.classList.remove("copied");
+            }, 2000);
+        }).catch(() => {
+            // Fallback
+            const ta = document.createElement("textarea");
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand("copy");
+            document.body.removeChild(ta);
+            btn.innerHTML = "\ud83d\udccb Copied!";
+            btn.classList.add("copied");
+            setTimeout(() => {
+                btn.innerHTML = "\ud83d\udcf8 Share";
+                btn.classList.remove("copied");
+            }, 2000);
+        });
+    });
+}
+
+// ===== Feature 5: Auto-Generated Daily Recap =====
+function renderDailyRecap() {
+    const container = document.getElementById("daily-recap");
+    const body = document.getElementById("daily-recap-body");
+
+    // Check if dismissed
+    if (sessionStorage.getItem("recap-dismissed") === "true") {
+        container.classList.add("hidden");
+        return;
+    }
+
+    const participants = bracketData.participants;
+    const master = bracketData.master;
+    const sorted = [...participants].sort((a, b) => b.score - a.score);
+    const roundKeys = ["Round of 32", "Sweet 16", "Elite 8", "Final Four", "Finalist", "Champion"];
+
+    const lines = [];
+
+    // Who's leading and by how much
+    if (sorted.length >= 2) {
+        const leader = sorted[0];
+        const second = sorted[1];
+        const gap = leader.score - second.score;
+        if (gap === 0) {
+            const tiedNames = sorted.filter(p => p.score === leader.score).map(p => p.name);
+            lines.push(`We've got a ${tiedNames.length}-way tie at the top! ${tiedNames.join(", ")} are all knotted up at ${leader.score} points.`);
+        } else if (gap <= 2) {
+            lines.push(`${leader.name} leads with ${leader.score} points, but ${second.name} is right on their heels with ${second.score}. Just ${gap} point${gap > 1 ? 's' : ''} separating them!`);
+        } else {
+            lines.push(`${leader.name} is sitting pretty at the top with ${leader.score} points, ${gap} ahead of ${second.name} (${second.score}). Comfortable lead so far.`);
+        }
+    }
+
+    // Last place
+    const last = sorted[sorted.length - 1];
+    if (last && sorted.length > 2) {
+        lines.push(`${last.name} is holding down the fort at the bottom with ${last.score} points. Never too late for a comeback!`);
+    }
+
+    // Count completed games
+    let completedGames = 0;
+    let totalUpsets = 0;
+    for (const region of master.regions) {
+        const r32Winners = region.round_winners["Round of 32"] || [];
+        completedGames += r32Winners.length;
+        for (const winner of r32Winners) {
+            const seed = findTeamSeed(winner, region);
+            if (seed && parseInt(seed) >= 9) totalUpsets++;
+        }
+    }
+
+    if (completedGames > 0) {
+        let gameMsg = `${completedGames} game${completedGames > 1 ? 's' : ''} in the books so far`;
+        if (totalUpsets > 0) {
+            gameMsg += ` with ${totalUpsets} upset${totalUpsets > 1 ? 's' : ''}! March Madness living up to its name.`;
+        } else {
+            gameMsg += `. The favorites are holding strong.`;
+        }
+        lines.push(gameMsg);
+    }
+
+    // Most busted bracket
+    const bustedData = participants.map(p => {
+        let eliminated = 0, total = 0;
+        for (let ri = 0; ri < 4; ri++) {
+            const pickRegion = p.regions[ri];
+            const masterRegion = master.regions[ri];
+            for (const rk of roundKeys) {
+                const picks = pickRegion.round_winners[rk] || [];
+                const masterWinners = (masterRegion.round_winners[rk] || []).map(w => w.toLowerCase().trim());
+                for (const pick of picks) {
+                    if (masterWinners.includes(pick.toLowerCase().trim())) continue;
+                    total++;
+                    if (isTeamEliminated(pick.toLowerCase().trim(), masterRegion)) eliminated++;
+                }
+            }
+        }
+        return { name: p.name, pct: total > 0 ? Math.round((eliminated / total) * 100) : 0 };
+    });
+    bustedData.sort((a, b) => b.pct - a.pct);
+    if (bustedData[0] && bustedData[0].pct > 30) {
+        lines.push(`${bustedData[0].name}'s bracket is looking rough with ${bustedData[0].pct}% of remaining picks eliminated. Hang in there!`);
+    }
+
+    if (lines.length === 0) {
+        lines.push("The tournament hasn't started yet. Check back once the games begin for your daily recap!");
+    }
+
+    body.innerHTML = lines.map(l => `<p>${l}</p>`).join("");
+    container.classList.remove("hidden");
+
+    // Dismiss handler
+    document.getElementById("daily-recap-close").addEventListener("click", () => {
+        container.classList.add("hidden");
+        sessionStorage.setItem("recap-dismissed", "true");
+    });
 }

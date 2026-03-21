@@ -75,8 +75,17 @@
         <!-- Leaderboard View -->
         <main id="view-leaderboard" class="view active">
             <div class="leaderboard-container">
+                <!-- Daily Recap -->
+                <div id="daily-recap" class="daily-recap-card hidden">
+                    <div class="daily-recap-header">
+                        <span>&#128240; DAILY RECAP</span>
+                        <button id="daily-recap-close" class="daily-recap-close">&times;</button>
+                    </div>
+                    <div id="daily-recap-body" class="daily-recap-body"></div>
+                </div>
                 <div class="leaderboard-header">
                     <h2>&#127942; STANDINGS</h2>
+                    <button id="share-btn" class="share-btn" title="Copy standings to clipboard">&#128248; Share</button>
                     <div class="scoring-info">
                         <span class="scoring-badge">R32: 1pt</span>
                         <span class="scoring-badge">S16: 2pts</span>
@@ -107,6 +116,8 @@
                         <tbody id="leaderboard-body"></tbody>
                     </table>
                 </div>
+                <!-- Bracket Busted Meter -->
+                <div id="bracket-busted-meter"></div>
                 <!-- Elimination Tracker -->
                 <div id="elimination-tracker"></div>
             </div>
@@ -150,6 +161,8 @@
             <div class="stats-container">
                 <h2>&#128202; FUN STATS</h2>
                 <div id="stats-cards"></div>
+                <!-- Region-by-Region Mini Leaderboard -->
+                <div id="region-mini-leaderboards"></div>
                 <div id="score-chart-section">
                     <h3 class="chart-title">&#128200; Round-by-Round Score Progression</h3>
                     <div id="score-chart"></div>
@@ -161,6 +174,14 @@
 
     <!-- Confetti Container -->
     <div id="confetti-container"></div>
+
+    <!-- Trash Talk Ticker -->
+    <div id="trash-talk-ticker" class="trash-talk-ticker hidden">
+        <div class="ticker-label">&#128483;&#65039;</div>
+        <div class="ticker-track">
+            <div class="ticker-content" id="ticker-content"></div>
+        </div>
+    </div>
 
     <footer id="app-footer" class="hidden">
         <p>Webster Family Bracket Challenge 2026 &bull; Auto-updates hourly during game days</p>
