@@ -1,31 +1,11 @@
 // Webster Family Bracket Challenge 2026
-const PASSWORD = "webster2026";
 let bracketData = null;
 
-// ===== Password Gate =====
-document.getElementById("password-form").addEventListener("submit", (e) => {
-    e.preventDefault();
-    const input = document.getElementById("password-input").value;
-    if (input === PASSWORD) {
-        document.getElementById("password-gate").classList.add("hidden");
-        document.getElementById("app").classList.remove("hidden");
-        document.getElementById("app-footer").classList.remove("hidden");
-        sessionStorage.setItem("authenticated", "true");
-        loadApp();
-    } else {
-        document.getElementById("password-error").classList.remove("hidden");
-        document.getElementById("password-input").value = "";
-        document.getElementById("password-input").focus();
-    }
-});
-
-// Check if already authenticated
-if (sessionStorage.getItem("authenticated") === "true") {
-    document.getElementById("password-gate").classList.add("hidden");
-    document.getElementById("app").classList.remove("hidden");
-    document.getElementById("app-footer").classList.remove("hidden");
-    loadApp();
-}
+// Auto-load app (no password required)
+document.getElementById("password-gate").classList.add("hidden");
+document.getElementById("app").classList.remove("hidden");
+document.getElementById("app-footer").classList.remove("hidden");
+loadApp();
 
 // ===== Navigation =====
 document.querySelectorAll(".nav-btn").forEach(btn => {
@@ -198,11 +178,14 @@ function buildNotification() {
 
 // ===== Leaderboard =====
 function renderLeaderboard() {
-    const participants = [...bracketData.participants].sort((a, b) => b.score - a.score);
+    const participants = [...bracketData.participants].sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return calculateMaxPossible(b) - calculateMaxPossible(a);
+    });
 
     let rank = 1;
     participants.forEach((p, i) => {
-        if (i > 0 && p.score < participants[i - 1].score) rank = i + 1;
+        if (i > 0 && (p.score < participants[i - 1].score || calculateMaxPossible(p) < calculateMaxPossible(participants[i - 1]))) rank = i + 1;
         p.rank = rank;
     });
 
