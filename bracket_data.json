@@ -10,10 +10,14 @@
   "standings": [
     {
       "name": "Dad",
-      "score": 42
+      "score": 44
     },
     {
       "name": "Jared",
+      "score": 42
+    },
+    {
+      "name": "Lauren",
       "score": 42
     },
     {
@@ -21,16 +25,12 @@
       "score": 41
     },
     {
-      "name": "Lauren",
-      "score": 40
+      "name": "Molly",
+      "score": 41
     },
     {
       "name": "Gavin",
       "score": 40
-    },
-    {
-      "name": "Molly",
-      "score": 39
     },
     {
       "name": "Mom",
@@ -151,7 +151,8 @@
           ],
           "Sweet 16": [
             "Duke",
-            "Michigan State"
+            "Michigan State",
+            "St. John's"
           ],
           "Elite 8": [],
           "Final Four": [],
@@ -530,7 +531,7 @@
       "id": "dad",
       "name": "Dad",
       "tiebreaker": "62 - 58",
-      "score": 42,
+      "score": 44,
       "regions": [
         {
           "matchups": [
@@ -2626,7 +2627,7 @@
       "id": "lauren",
       "name": "Lauren",
       "tiebreaker": "85 - 78",
-      "score": 40,
+      "score": 42,
       "regions": [
         {
           "matchups": [
@@ -3674,7 +3675,7 @@
       "id": "molly",
       "name": "Molly",
       "tiebreaker": "82-67",
-      "score": 39,
+      "score": 41,
       "regions": [
         {
           "matchups": [
@@ -4207,7 +4208,13 @@
       "loser_espn": "Kentucky Wildcats",
       "score": "82-63",
       "round": "Sweet 16"
+    },
+    {
+      "winner": "St. John's",
+      "loser_espn": "Kansas Jayhawks",
+      "score": "65-67",
+      "round": "Sweet 16"
     }
   ],
-  "last_updated": "2026-03-22T23:27:10Z"
+  "last_updated": "2026-03-22T23:55:55Z"
 }
