@@ -473,8 +473,8 @@ function renderBracket(playerId) {
         }
         html += `</div></div>`;
 
-        const laterRounds = ["Round of 32", "Sweet 16", "Elite 8", "Final Four", "Finalist"];
-        const laterLabels = ["R32", "S16", "E8", "F4", "FINALS"];
+        const laterRounds = ["Round of 32", "Sweet 16", "Elite 8"];
+        const laterLabels = ["R32", "S16", "E8"];
 
         for (let rki = 0; rki < laterRounds.length; rki++) {
             const rk = laterRounds[rki];
