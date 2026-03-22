@@ -1,6 +1,18 @@
 // Webster Family Bracket Challenge 2026
 let bracketData = null;
 
+// Pronouns for family members
+const PRONOUNS = {
+    "Dad": { subject: "he", object: "him", possessive: "his" },
+    "Mom": { subject: "she", object: "her", possessive: "her" },
+    "Jared": { subject: "he", object: "him", possessive: "his" },
+    "Megan": { subject: "she", object: "her", possessive: "her" },
+    "Lauren": { subject: "she", object: "her", possessive: "her" },
+    "Gavin": { subject: "he", object: "him", possessive: "his" },
+    "Molly": { subject: "she", object: "her", possessive: "her" },
+};
+function pronoun(name, type) { return (PRONOUNS[name] || { subject: "they", object: "them", possessive: "their" })[type]; }
+
 // Auto-load app (no password required)
 document.getElementById("password-gate").classList.add("hidden");
 document.getElementById("app").classList.remove("hidden");
@@ -1857,16 +1869,16 @@ function renderDailyRecap() {
             const tiedNames = sorted.filter(p => p.score === leader.score).map(p => p.name);
             lines.push(`We've got a ${tiedNames.length}-way tie at the top! ${tiedNames.join(", ")} are all knotted up at ${leader.score} points.`);
         } else if (gap <= 2) {
-            lines.push(`${leader.name} leads with ${leader.score} points, but ${second.name} is right on their heels with ${second.score}. Just ${gap} point${gap > 1 ? 's' : ''} separating them!`);
+            lines.push(`${leader.name} leads with ${leader.score} points, but ${second.name} is right on ${pronoun(leader.name, 'possessive')} heels with ${second.score}. Just ${gap} point${gap > 1 ? 's' : ''} separating them!`);
         } else {
-            lines.push(`${leader.name} is sitting pretty at the top with ${leader.score} points, ${gap} ahead of ${second.name} (${second.score}). Comfortable lead so far.`);
+            lines.push(`${leader.name} is sitting pretty at the top with ${leader.score} points, ${gap} ahead of ${second.name} (${second.score}). ${pronoun(leader.name, 'subject').charAt(0).toUpperCase() + pronoun(leader.name, 'subject').slice(1)}'s got a comfortable lead so far.`);
         }
     }
 
     // Last place
     const last = sorted[sorted.length - 1];
     if (last && sorted.length > 2) {
-        lines.push(`${last.name} is holding down the fort at the bottom with ${last.score} points. Never too late for a comeback!`);
+        lines.push(`${last.name} is holding down the fort at the bottom with ${last.score} points. Never too late for ${pronoun(last.name, 'object')} to make a comeback!`);
     }
 
     // Count completed games
@@ -1911,7 +1923,7 @@ function renderDailyRecap() {
     });
     bustedData.sort((a, b) => b.pct - a.pct);
     if (bustedData[0] && bustedData[0].pct > 30) {
-        lines.push(`${bustedData[0].name}'s bracket is looking rough with ${bustedData[0].pct}% of remaining picks eliminated. Hang in there!`);
+        lines.push(`${bustedData[0].name}'s bracket is looking rough with ${bustedData[0].pct}% of ${pronoun(bustedData[0].name, 'possessive')} remaining picks eliminated. Hang in there!`);
     }
 
     if (lines.length === 0) {
