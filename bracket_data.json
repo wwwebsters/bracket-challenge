@@ -9,31 +9,31 @@
   },
   "standings": [
     {
-      "name": "Dad",
-      "score": 38
-    },
-    {
-      "name": "Jared",
-      "score": 38
-    },
-    {
-      "name": "Lauren",
-      "score": 38
-    },
-    {
       "name": "Megan",
       "score": 37
     },
     {
-      "name": "Molly",
-      "score": 37
-    },
-    {
-      "name": "Gavin",
+      "name": "Dad",
       "score": 36
     },
     {
+      "name": "Jared",
+      "score": 36
+    },
+    {
+      "name": "Lauren",
+      "score": 36
+    },
+    {
+      "name": "Molly",
+      "score": 35
+    },
+    {
       "name": "Mom",
+      "score": 34
+    },
+    {
+      "name": "Gavin",
       "score": 34
     }
   ],
@@ -158,7 +158,7 @@
           "Finalist": [],
           "Champion": []
         },
-        "name": "South"
+        "name": "East"
       },
       {
         "matchups": [
@@ -271,14 +271,13 @@
             "Utah State"
           ],
           "Sweet 16": [
-            "TX/NC State",
-            "Arkansas"
+            "TX/NC State"
           ],
           "Elite 8": [],
           "Final Four": [],
           "Finalist": []
         },
-        "name": "East"
+        "name": "West"
       },
       {
         "matchups": [
@@ -392,15 +391,14 @@
           ],
           "Sweet 16": [
             "Houston",
-            "Illinois",
-            "Nebraska"
+            "Illinois"
           ],
           "Elite 8": [],
           "Final Four": [],
           "Finalist": [],
           "Champion": []
         },
-        "name": "West"
+        "name": "South"
       },
       {
         "matchups": [
@@ -528,7 +526,7 @@
       "id": "dad",
       "name": "Dad",
       "tiebreaker": "62 - 58",
-      "score": 38,
+      "score": 36,
       "regions": [
         {
           "matchups": [
@@ -660,7 +658,7 @@
               "Michigan"
             ]
           },
-          "name": "South"
+          "name": "East"
         },
         {
           "matchups": [
@@ -789,7 +787,7 @@
               "Michigan"
             ]
           },
-          "name": "East"
+          "name": "West"
         },
         {
           "matchups": [
@@ -917,7 +915,7 @@
             "Finalist": [],
             "Champion": []
           },
-          "name": "West"
+          "name": "South"
         },
         {
           "matchups": [
@@ -1184,7 +1182,7 @@
               "Arizona"
             ]
           },
-          "name": "South"
+          "name": "East"
         },
         {
           "matchups": [
@@ -1313,7 +1311,7 @@
               "Arizona"
             ]
           },
-          "name": "East"
+          "name": "West"
         },
         {
           "matchups": [
@@ -1441,7 +1439,7 @@
             "Finalist": [],
             "Champion": []
           },
-          "name": "West"
+          "name": "South"
         },
         {
           "matchups": [
@@ -1576,7 +1574,7 @@
       "id": "jared",
       "name": "Jared",
       "tiebreaker": "80-75",
-      "score": 38,
+      "score": 36,
       "regions": [
         {
           "matchups": [
@@ -1708,7 +1706,7 @@
               "Arizona"
             ]
           },
-          "name": "South"
+          "name": "East"
         },
         {
           "matchups": [
@@ -1837,7 +1835,7 @@
               "Arizona"
             ]
           },
-          "name": "East"
+          "name": "West"
         },
         {
           "matchups": [
@@ -1965,7 +1963,7 @@
             "Finalist": [],
             "Champion": []
           },
-          "name": "West"
+          "name": "South"
         },
         {
           "matchups": [
@@ -2232,7 +2230,7 @@
               "Arizona"
             ]
           },
-          "name": "South"
+          "name": "East"
         },
         {
           "matchups": [
@@ -2361,7 +2359,7 @@
               "Arizona"
             ]
           },
-          "name": "East"
+          "name": "West"
         },
         {
           "matchups": [
@@ -2489,7 +2487,7 @@
             "Finalist": [],
             "Champion": []
           },
-          "name": "West"
+          "name": "South"
         },
         {
           "matchups": [
@@ -2624,7 +2622,7 @@
       "id": "lauren",
       "name": "Lauren",
       "tiebreaker": "85 - 78",
-      "score": 38,
+      "score": 36,
       "regions": [
         {
           "matchups": [
@@ -2756,7 +2754,7 @@
               "Duke"
             ]
           },
-          "name": "South"
+          "name": "East"
         },
         {
           "matchups": [
@@ -2885,7 +2883,7 @@
               "Arizona"
             ]
           },
-          "name": "East"
+          "name": "West"
         },
         {
           "matchups": [
@@ -3013,7 +3011,7 @@
             "Finalist": [],
             "Champion": []
           },
-          "name": "West"
+          "name": "South"
         },
         {
           "matchups": [
@@ -3148,7 +3146,7 @@
       "id": "gavin",
       "name": "Gavin",
       "tiebreaker": "82-74",
-      "score": 36,
+      "score": 34,
       "regions": [
         {
           "matchups": [
@@ -3280,7 +3278,7 @@
               "Duke"
             ]
           },
-          "name": "South"
+          "name": "East"
         },
         {
           "matchups": [
@@ -3409,7 +3407,7 @@
               "Purdue"
             ]
           },
-          "name": "East"
+          "name": "West"
         },
         {
           "matchups": [
@@ -3537,7 +3535,7 @@
             "Finalist": [],
             "Champion": []
           },
-          "name": "West"
+          "name": "South"
         },
         {
           "matchups": [
@@ -3672,7 +3670,7 @@
       "id": "molly",
       "name": "Molly",
       "tiebreaker": "82-67",
-      "score": 37,
+      "score": 35,
       "regions": [
         {
           "matchups": [
@@ -3804,7 +3802,7 @@
               "Arizona"
             ]
           },
-          "name": "South"
+          "name": "East"
         },
         {
           "matchups": [
@@ -3933,7 +3931,7 @@
               "Arizona"
             ]
           },
-          "name": "East"
+          "name": "West"
         },
         {
           "matchups": [
@@ -4061,7 +4059,7 @@
             "Finalist": [],
             "Champion": []
           },
-          "name": "West"
+          "name": "South"
         },
         {
           "matchups": [
