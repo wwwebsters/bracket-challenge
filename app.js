@@ -530,20 +530,44 @@ function renderBracket(playerId) {
             return f4.length > 0 ? f4[0] : null;
         });
 
-        // Finalists: region 0 = semi 1 winner (South vs East), region 1 = semi 2 winner (West vs Midwest)
-        const finalist1 = (p.regions[0].round_winners["Finalist"] || [])[0] || null;
-        const finalist2 = (p.regions[1].round_winners["Finalist"] || [])[0] || null;
+        // Helper: find which region a team actually belongs to
+        function findTeamRegionName(teamName, player) {
+            const tLower = teamName.toLowerCase().trim();
+            for (let ri = 0; ri < 4; ri++) {
+                for (const matchup of player.regions[ri].matchups) {
+                    for (const team of matchup) {
+                        if (team.name.toLowerCase().trim() === tLower) return player.regions[ri].name;
+                    }
+                }
+            }
+            return "";
+        }
+
+        // Finalists — collect from all regions, deduplicate
+        const allFinalists = [];
+        for (const region of p.regions) {
+            const f = region.round_winners["Finalist"] || [];
+            for (const name of f) {
+                if (!allFinalists.includes(name)) allFinalists.push(name);
+            }
+        }
 
         // Champion
-        const championPick = (p.regions[0].round_winners["Champion"] || [])[0] || null;
+        let championPick = null;
+        for (const region of p.regions) {
+            const c = region.round_winners["Champion"] || [];
+            if (c.length > 0) championPick = c[0];
+        }
 
         html += `<div class="final-four-section">`;
         html += `<div class="final-four-title">&#127942; FINAL FOUR & CHAMPIONSHIP</div>`;
 
-        // Semifinal 1: South winner vs East winner
+        // Final Four — show all 4 teams with their actual region
         html += `<div class="semifinal-bracket">`;
+
+        // Semifinal 1: South vs East (regions 0 and 1)
         html += `<div class="semifinal-matchup">`;
-        html += `<div class="semi-label">Semifinal 1</div>`;
+        html += `<div class="semi-label">${regionNames[0]} vs ${regionNames[1]}</div>`;
         if (f4Picks[0]) {
             const seed0 = findTeamSeedGlobal(f4Picks[0], p);
             html += `<div class="bracket-team pending">${seed0 ? `<span class="seed">${seed0}</span>` : ""}${f4Picks[0]} <span class="region-tag">${regionNames[0]}</span></div>`;
@@ -552,14 +576,11 @@ function renderBracket(playerId) {
             const seed1 = findTeamSeedGlobal(f4Picks[1], p);
             html += `<div class="bracket-team pending">${seed1 ? `<span class="seed">${seed1}</span>` : ""}${f4Picks[1]} <span class="region-tag">${regionNames[1]}</span></div>`;
         }
-        if (finalist1) {
-            html += `<div class="semi-winner">Winner: ${finalist1}</div>`;
-        }
         html += `</div>`;
 
-        // Semifinal 2: West winner vs Midwest winner
+        // Semifinal 2: West vs Midwest (regions 2 and 3)
         html += `<div class="semifinal-matchup">`;
-        html += `<div class="semi-label">Semifinal 2</div>`;
+        html += `<div class="semi-label">${regionNames[2]} vs ${regionNames[3]}</div>`;
         if (f4Picks[2]) {
             const seed2 = findTeamSeedGlobal(f4Picks[2], p);
             html += `<div class="bracket-team pending">${seed2 ? `<span class="seed">${seed2}</span>` : ""}${f4Picks[2]} <span class="region-tag">${regionNames[2]}</span></div>`;
@@ -568,26 +589,27 @@ function renderBracket(playerId) {
             const seed3 = findTeamSeedGlobal(f4Picks[3], p);
             html += `<div class="bracket-team pending">${seed3 ? `<span class="seed">${seed3}</span>` : ""}${f4Picks[3]} <span class="region-tag">${regionNames[3]}</span></div>`;
         }
-        if (finalist2) {
-            html += `<div class="semi-winner">Winner: ${finalist2}</div>`;
-        }
         html += `</div>`;
         html += `</div>`;
 
-        // Championship
-        if (finalist1 || finalist2) {
+        // Championship — show the two finalists with their actual regions
+        if (allFinalists.length > 0) {
             html += `<div class="championship-matchup">`;
             html += `<div class="semi-label">Championship</div>`;
-            if (finalist1) html += `<div class="bracket-team pending">${finalist1}</div>`;
-            if (finalist2) html += `<div class="bracket-team pending">${finalist2}</div>`;
+            for (const finalist of allFinalists) {
+                const regionTag = findTeamRegionName(finalist, p);
+                const seed = findTeamSeedGlobal(finalist, p);
+                html += `<div class="bracket-team pending">${seed ? `<span class="seed">${seed}</span>` : ""}${finalist}${regionTag ? ` <span class="region-tag">${regionTag}</span>` : ""}</div>`;
+            }
             html += `</div>`;
         }
 
         if (championPick) {
+            const champRegion = findTeamRegionName(championPick, p);
             html += `
                 <div class="champion-box">
                     <div class="champion-label">&#128081; CHAMPION PICK</div>
-                    <div class="champion-team pending">${championPick}</div>
+                    <div class="champion-team pending">${championPick}${champRegion ? ` <span class="region-tag" style="font-size: 12px;">${champRegion}</span>` : ""}</div>
                 </div>
             `;
         }
