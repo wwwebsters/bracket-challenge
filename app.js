@@ -87,7 +87,7 @@ function showNotification(message) {
     banner.classList.remove("hidden");
 
     if (notificationTimer) clearTimeout(notificationTimer);
-    notificationTimer = setTimeout(() => dismissNotification(), 10000);
+    notificationTimer = setTimeout(() => dismissNotification(), 20000);
 }
 
 function dismissNotification() {
