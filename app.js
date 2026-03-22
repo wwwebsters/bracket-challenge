@@ -173,7 +173,6 @@ function buildNotification() {
             for (const w of winners) {
                 const key = `${region.name}|${roundKeys[ri]}|${w.toLowerCase().trim()}`;
                 currentWinnerKeys.add(key);
-                // If we have a previous snapshot, check if this is new
                 if (previousWinnerKeys && !previousWinnerKeys.has(key)) {
                     allNewWinners.push({ winner: w, roundKey: roundKeys[ri], roundIdx: ri, regionName: region.name });
                 }
@@ -183,27 +182,29 @@ function buildNotification() {
 
     const isFirstLoad = !previousWinnerKeys;
 
-    // On first load, show the most recent winner as the banner
     if (isFirstLoad) {
         previousWinnerKeys = currentWinnerKeys;
-        // Find the latest winner (highest round, last entry)
-        let latestWinner = null;
+        // On first load, show ALL winners from the highest completed round
+        // Find the highest round that has results
+        let highestRound = -1;
         for (const region of master.regions) {
             for (let ri = roundKeys.length - 1; ri >= 0; ri--) {
                 const winners = region.round_winners[roundKeys[ri]] || [];
-                if (winners.length > 0) {
-                    if (!latestWinner || ri > latestWinner.roundIdx) {
-                        latestWinner = { winner: winners[winners.length - 1], roundKey: roundKeys[ri], roundIdx: ri, regionName: region.name };
-                    }
+                if (winners.length > 0 && ri > highestRound) {
+                    highestRound = ri;
                 }
             }
         }
-        if (latestWinner) {
-            allNewWinners.length = 0;
-            allNewWinners.push(latestWinner);
-        } else {
-            return;
+        if (highestRound < 0) return;
+        // Collect all winners from that round across all regions
+        allNewWinners.length = 0;
+        for (const region of master.regions) {
+            const winners = region.round_winners[roundKeys[highestRound]] || [];
+            for (const w of winners) {
+                allNewWinners.push({ winner: w, roundKey: roundKeys[highestRound], roundIdx: highestRound, regionName: region.name });
+            }
         }
+        if (allNewWinners.length === 0) return;
     } else {
         previousWinnerKeys = currentWinnerKeys;
         if (allNewWinners.length === 0) return;
