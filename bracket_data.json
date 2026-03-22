@@ -10,27 +10,27 @@
   "standings": [
     {
       "name": "Dad",
-      "score": 40
+      "score": 42
     },
     {
       "name": "Jared",
-      "score": 40
+      "score": 42
+    },
+    {
+      "name": "Megan",
+      "score": 41
     },
     {
       "name": "Lauren",
       "score": 40
     },
     {
-      "name": "Megan",
-      "score": 39
+      "name": "Gavin",
+      "score": 40
     },
     {
       "name": "Molly",
       "score": 39
-    },
-    {
-      "name": "Gavin",
-      "score": 38
     },
     {
       "name": "Mom",
@@ -514,7 +514,8 @@
             "Kentucky"
           ],
           "Sweet 16": [
-            "Michigan"
+            "Michigan",
+            "Iowa State"
           ],
           "Elite 8": [],
           "Final Four": [],
@@ -529,7 +530,7 @@
       "id": "dad",
       "name": "Dad",
       "tiebreaker": "62 - 58",
-      "score": 40,
+      "score": 42,
       "regions": [
         {
           "matchups": [
@@ -1577,7 +1578,7 @@
       "id": "jared",
       "name": "Jared",
       "tiebreaker": "80-75",
-      "score": 40,
+      "score": 42,
       "regions": [
         {
           "matchups": [
@@ -2101,7 +2102,7 @@
       "id": "megan",
       "name": "Megan",
       "tiebreaker": "82-74",
-      "score": 39,
+      "score": 41,
       "regions": [
         {
           "matchups": [
@@ -3149,7 +3150,7 @@
       "id": "gavin",
       "name": "Gavin",
       "tiebreaker": "82-74",
-      "score": 38,
+      "score": 40,
       "regions": [
         {
           "matchups": [
