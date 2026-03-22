@@ -154,77 +154,31 @@ function updateTimestamp() {
         `Updated: ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
 }
 
-// ===== Build Notification from latest results =====
-let previousWinnerKeys = null; // track known winners across refreshes
-
+// ===== Build Notification from today's results =====
 function buildNotification() {
-    const master = bracketData.master;
+    const todayResults = bracketData.today_results || [];
+    if (todayResults.length === 0) return;
+
     const participants = bracketData.participants;
     const roundKeys = ["Round of 32", "Sweet 16", "Elite 8", "Final Four", "Finalist", "Champion"];
-    const roundLabelsNotif = ["R64", "R32", "Sweet 16", "Elite 8", "Final Four", "Championship"];
-    const roundPoints = [1, 2, 3, 4, 5, 6];
+    const roundLabels = {"Round of 32": "R64", "Sweet 16": "R32", "Elite 8": "Sweet 16", "Final Four": "Elite 8", "Finalist": "Final Four", "Champion": "Championship"};
+    const roundPoints = {"Round of 32": 1, "Sweet 16": 2, "Elite 8": 3, "Final Four": 4, "Finalist": 5, "Champion": 6};
 
-    // Build a set of all current winners across all regions/rounds
-    const currentWinnerKeys = new Set();
-    const allNewWinners = [];
-    for (const region of master.regions) {
-        for (let ri = 0; ri < roundKeys.length; ri++) {
-            const winners = region.round_winners[roundKeys[ri]] || [];
-            for (const w of winners) {
-                const key = `${region.name}|${roundKeys[ri]}|${w.toLowerCase().trim()}`;
-                currentWinnerKeys.add(key);
-                if (previousWinnerKeys && !previousWinnerKeys.has(key)) {
-                    allNewWinners.push({ winner: w, roundKey: roundKeys[ri], roundIdx: ri, regionName: region.name });
-                }
-            }
-        }
-    }
-
-    const isFirstLoad = !previousWinnerKeys;
-
-    if (isFirstLoad) {
-        previousWinnerKeys = currentWinnerKeys;
-        // On first load, show ALL winners from the highest completed round
-        // Find the highest round that has results
-        let highestRound = -1;
-        for (const region of master.regions) {
-            for (let ri = roundKeys.length - 1; ri >= 0; ri--) {
-                const winners = region.round_winners[roundKeys[ri]] || [];
-                if (winners.length > 0 && ri > highestRound) {
-                    highestRound = ri;
-                }
-            }
-        }
-        if (highestRound < 0) return;
-        // Collect all winners from that round across all regions
-        allNewWinners.length = 0;
-        for (const region of master.regions) {
-            const winners = region.round_winners[roundKeys[highestRound]] || [];
-            for (const w of winners) {
-                allNewWinners.push({ winner: w, roundKey: roundKeys[highestRound], roundIdx: highestRound, regionName: region.name });
-            }
-        }
-        if (allNewWinners.length === 0) return;
-    } else {
-        previousWinnerKeys = currentWinnerKeys;
-        if (allNewWinners.length === 0) return;
-    }
-
-    // Build notification messages
     const messages = [];
-    for (const nw of allNewWinners) {
-        const pts = roundPoints[nw.roundIdx] || 1;
+    for (const result of todayResults) {
+        const pts = roundPoints[result.round] || 1;
+        const label = roundLabels[result.round] || result.round;
         const whoGotIt = [];
         for (const p of participants) {
-            const pRegion = p.regions.find(r => r.name === nw.regionName);
-            if (!pRegion) continue;
-            const picks = pRegion.round_winners[nw.roundKey] || [];
-            if (picks.some(pk => pk.toLowerCase().trim() === nw.winner.toLowerCase().trim())) {
-                whoGotIt.push(p.name + " +" + pts);
+            for (const pRegion of p.regions) {
+                const picks = pRegion.round_winners[result.round] || [];
+                if (picks.some(pk => pk.toLowerCase().trim() === result.winner.toLowerCase().trim())) {
+                    whoGotIt.push(p.name + " +" + pts);
+                    break;
+                }
             }
         }
-        const roundLabel = roundLabelsNotif[nw.roundIdx];
-        messages.push(`\u{1F6A8} ${nw.winner} advances (${roundLabel})! ${whoGotIt.length > 0 ? whoGotIt.join(", ") : "Nobody picked this one!"}`);
+        messages.push(`\u{1F6A8} ${result.winner} advances (${label})! ${whoGotIt.length > 0 ? whoGotIt.join(", ") : "Nobody picked this one!"}`);
     }
 
     showNotification(messages.join(" \u{1F3C0} "));

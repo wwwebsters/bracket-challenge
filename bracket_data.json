@@ -4194,5 +4194,20 @@
         }
       ]
     }
-  ]
+  ],
+  "today_results": [
+    {
+      "winner": "Purdue",
+      "loser_espn": "Miami Hurricanes",
+      "score": "79-69",
+      "round": "Sweet 16"
+    },
+    {
+      "winner": "Iowa State",
+      "loser_espn": "Kentucky Wildcats",
+      "score": "82-63",
+      "round": "Sweet 16"
+    }
+  ],
+  "last_updated": "2026-03-22T23:26:32Z"
 }

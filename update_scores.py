@@ -252,13 +252,41 @@ def main():
         log("No completed games found. Exiting.")
         return
     updated = update_master_bracket(bracket_data, completed_games)
-    if updated:
-        log("Recalculating scores...")
-        recalculate_scores(bracket_data)
+
+    # Always update today's results for the notification banner
+    today = datetime.now().strftime("%Y%m%d")
+    today_results = []
+    for game in completed_games:
+        if game["date"] == today and "first four" not in game["espn_round"]:
+            target_round = ESPN_ROUND_MAP.get(game["espn_round"], "")
+            if not target_round:
+                continue
+            # Find our name for the winner
+            our_winner = game["winner"]
+            for region in bracket_data["master"]["regions"]:
+                found = find_our_name_for_espn(game["winner"], get_all_region_teams(region))
+                if found:
+                    our_winner = found
+                    break
+            today_results.append({
+                "winner": our_winner,
+                "loser_espn": game["team1"] if game["winner"] != game["team1"] else game["team2"],
+                "score": f"{game['team1_score']}-{game['team2_score']}",
+                "round": target_round,
+            })
+    bracket_data["today_results"] = today_results
+    bracket_data["last_updated"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    if updated or today_results != bracket_data.get("_prev_today", []):
+        if updated:
+            log("Recalculating scores...")
+            recalculate_scores(bracket_data)
+        bracket_data.pop("_prev_today", None)
         with open(DATA_FILE, "w", encoding="utf-8") as f:
             json.dump(bracket_data, f, indent=2)
         log("bracket_data.json updated successfully!")
         log(f"Updated standings: {bracket_data['standings']}")
+        log(f"Today's results: {len(today_results)} games")
     else:
         log("No new results to update.")
     log("=== Update complete ===")
