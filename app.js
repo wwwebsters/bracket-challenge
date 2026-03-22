@@ -169,17 +169,35 @@ function buildNotification() {
         }
     }
 
-    // First load — store the snapshot, don't notify (everything would be "new")
-    if (!previousWinnerKeys) {
+    const isFirstLoad = !previousWinnerKeys;
+
+    // On first load, show the most recent winner as the banner
+    if (isFirstLoad) {
         previousWinnerKeys = currentWinnerKeys;
-        return;
+        // Find the latest winner (highest round, last entry)
+        let latestWinner = null;
+        for (const region of master.regions) {
+            for (let ri = roundKeys.length - 1; ri >= 0; ri--) {
+                const winners = region.round_winners[roundKeys[ri]] || [];
+                if (winners.length > 0) {
+                    if (!latestWinner || ri > latestWinner.roundIdx) {
+                        latestWinner = { winner: winners[winners.length - 1], roundKey: roundKeys[ri], roundIdx: ri, regionName: region.name };
+                    }
+                }
+            }
+        }
+        if (latestWinner) {
+            allNewWinners.length = 0;
+            allNewWinners.push(latestWinner);
+        } else {
+            return;
+        }
+    } else {
+        previousWinnerKeys = currentWinnerKeys;
+        if (allNewWinners.length === 0) return;
     }
 
-    previousWinnerKeys = currentWinnerKeys;
-
-    if (allNewWinners.length === 0) return;
-
-    // Build notification messages for each new winner
+    // Build notification messages
     const messages = [];
     for (const nw of allNewWinners) {
         const pts = roundPoints[nw.roundIdx] || 1;
@@ -196,7 +214,6 @@ function buildNotification() {
         messages.push(`\u{1F6A8} ${nw.winner} advances (${roundLabel})! ${whoGotIt.length > 0 ? whoGotIt.join(", ") : "Nobody picked this one!"}`);
     }
 
-    // Show all new results in one banner
     showNotification(messages.join(" \u{1F3C0} "));
 }
 
