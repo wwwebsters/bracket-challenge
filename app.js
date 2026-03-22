@@ -1081,28 +1081,33 @@ function renderStats() {
         detail: upsetKing ? `${upsetKing.upsets} correct underdog picks (seed 5+)` : ""
     });
 
-    // 4. Worst Round
+    // 4. Worst Round — only count a pick as wrong if that team is eliminated
     let worstRound = { name: "N/A", round: "", wrong: 0 };
     for (const p of participants) {
         for (let rki = 0; rki < roundKeys.length; rki++) {
             const rk = roundKeys[rki];
             let wrongCount = 0;
-            let totalPicks = 0;
+            let decidedCount = 0;
             for (let ri = 0; ri < 4; ri++) {
                 const region = p.regions[ri];
                 const masterRegion = master.regions[ri];
                 const picks = region.round_winners[rk] || [];
                 const masterWinners = (masterRegion.round_winners[rk] || []).map(w => w.toLowerCase().trim());
-                if (masterWinners.length === 0) continue;
                 for (const pick of picks) {
-                    totalPicks++;
-                    if (!masterWinners.includes(pick.toLowerCase().trim())) {
+                    const pickLower = pick.toLowerCase().trim();
+                    // Only count this pick if the game has been decided:
+                    // Either the pick IS a winner (correct) or the pick's team is eliminated
+                    if (masterWinners.includes(pickLower)) {
+                        decidedCount++;
+                    } else if (isTeamEliminated(pickLower, masterRegion)) {
+                        decidedCount++;
                         wrongCount++;
                     }
+                    // If neither, the game hasn't been played yet — skip
                 }
             }
-            if (totalPicks > 0 && wrongCount > worstRound.wrong) {
-                worstRound = { name: p.name, round: roundLabels[rki], wrong: wrongCount, total: totalPicks };
+            if (decidedCount > 0 && wrongCount > worstRound.wrong) {
+                worstRound = { name: p.name, round: roundLabels[rki], wrong: wrongCount, total: decidedCount };
             }
         }
     }
