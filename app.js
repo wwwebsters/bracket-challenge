@@ -522,45 +522,66 @@ function renderBracket(playerId) {
     // Final Four / Championship section
     if (!isMaster) {
         const p = source;
-        let championPick = "";
-        let finalistPicks = [];
+        const regionNames = p.regions.map(r => r.name);
 
-        for (const region of p.regions) {
-            const champ = region.round_winners["Champion"] || [];
-            if (champ.length > 0) championPick = champ[0];
-            const finalist = region.round_winners["Finalist"] || [];
-            finalistPicks.push(...finalist);
+        // Get Final Four picks — one per region
+        const f4Picks = p.regions.map(r => {
+            const f4 = r.round_winners["Final Four"] || [];
+            return f4.length > 0 ? f4[0] : null;
+        });
+
+        // Finalists: region 0 = semi 1 winner (South vs East), region 1 = semi 2 winner (West vs Midwest)
+        const finalist1 = (p.regions[0].round_winners["Finalist"] || [])[0] || null;
+        const finalist2 = (p.regions[1].round_winners["Finalist"] || [])[0] || null;
+
+        // Champion
+        const championPick = (p.regions[0].round_winners["Champion"] || [])[0] || null;
+
+        html += `<div class="final-four-section">`;
+        html += `<div class="final-four-title">&#127942; FINAL FOUR & CHAMPIONSHIP</div>`;
+
+        // Semifinal 1: South winner vs East winner
+        html += `<div class="semifinal-bracket">`;
+        html += `<div class="semifinal-matchup">`;
+        html += `<div class="semi-label">Semifinal 1</div>`;
+        if (f4Picks[0]) {
+            const seed0 = findTeamSeedGlobal(f4Picks[0], p);
+            html += `<div class="bracket-team pending">${seed0 ? `<span class="seed">${seed0}</span>` : ""}${f4Picks[0]} <span class="region-tag">${regionNames[0]}</span></div>`;
         }
-
-        let f4Picks = [];
-        for (const region of p.regions) {
-            const f4 = region.round_winners["Final Four"] || [];
-            f4Picks.push(...f4);
+        if (f4Picks[1]) {
+            const seed1 = findTeamSeedGlobal(f4Picks[1], p);
+            html += `<div class="bracket-team pending">${seed1 ? `<span class="seed">${seed1}</span>` : ""}${f4Picks[1]} <span class="region-tag">${regionNames[1]}</span></div>`;
         }
-
-        html += `
-            <div class="final-four-section">
-                <div class="final-four-title">&#127942; FINAL FOUR & CHAMPIONSHIP</div>
-                <div class="picks-grid" style="max-width: 600px; margin: 0 auto;">
-        `;
-
-        if (f4Picks.length > 0) {
-            html += `<div style="grid-column: 1/-1; margin-bottom: 8px;"><strong style="color: var(--text-dim); font-size: 11px; text-transform: uppercase; letter-spacing: 2px;">Final Four</strong></div>`;
-            for (const pick of f4Picks) {
-                const seed = findTeamSeedGlobal(pick, p);
-                html += `<div class="pick-item pending">${seed ? `(${seed}) ` : ""}${pick}</div>`;
-            }
+        if (finalist1) {
+            html += `<div class="semi-winner">Winner: ${finalist1}</div>`;
         }
-
-        if (finalistPicks.length > 0) {
-            html += `<div style="grid-column: 1/-1; margin-top: 12px; margin-bottom: 8px;"><strong style="color: var(--text-dim); font-size: 11px; text-transform: uppercase; letter-spacing: 2px;">Finalists</strong></div>`;
-            for (const pick of finalistPicks) {
-                const seed = findTeamSeedGlobal(pick, p);
-                html += `<div class="pick-item pending">${seed ? `(${seed}) ` : ""}${pick}</div>`;
-            }
-        }
-
         html += `</div>`;
+
+        // Semifinal 2: West winner vs Midwest winner
+        html += `<div class="semifinal-matchup">`;
+        html += `<div class="semi-label">Semifinal 2</div>`;
+        if (f4Picks[2]) {
+            const seed2 = findTeamSeedGlobal(f4Picks[2], p);
+            html += `<div class="bracket-team pending">${seed2 ? `<span class="seed">${seed2}</span>` : ""}${f4Picks[2]} <span class="region-tag">${regionNames[2]}</span></div>`;
+        }
+        if (f4Picks[3]) {
+            const seed3 = findTeamSeedGlobal(f4Picks[3], p);
+            html += `<div class="bracket-team pending">${seed3 ? `<span class="seed">${seed3}</span>` : ""}${f4Picks[3]} <span class="region-tag">${regionNames[3]}</span></div>`;
+        }
+        if (finalist2) {
+            html += `<div class="semi-winner">Winner: ${finalist2}</div>`;
+        }
+        html += `</div>`;
+        html += `</div>`;
+
+        // Championship
+        if (finalist1 || finalist2) {
+            html += `<div class="championship-matchup">`;
+            html += `<div class="semi-label">Championship</div>`;
+            if (finalist1) html += `<div class="bracket-team pending">${finalist1}</div>`;
+            if (finalist2) html += `<div class="bracket-team pending">${finalist2}</div>`;
+            html += `</div>`;
+        }
 
         if (championPick) {
             html += `
