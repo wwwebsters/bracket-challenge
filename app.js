@@ -143,46 +143,61 @@ function updateTimestamp() {
 }
 
 // ===== Build Notification from latest results =====
+let previousWinnerKeys = null; // track known winners across refreshes
+
 function buildNotification() {
     const master = bracketData.master;
     const participants = bracketData.participants;
     const roundKeys = ["Round of 32", "Sweet 16", "Elite 8", "Final Four", "Finalist", "Champion"];
+    const roundLabelsNotif = ["R64", "R32", "Sweet 16", "Elite 8", "Final Four", "Championship"];
     const roundPoints = [1, 2, 3, 4, 5, 6];
 
-    // Find the latest round with results
-    let latestWinner = null;
-    let latestRoundKey = null;
-    let latestRoundIdx = -1;
+    // Build a set of all current winners across all regions/rounds
+    const currentWinnerKeys = new Set();
+    const allNewWinners = [];
     for (const region of master.regions) {
-        for (let ri = roundKeys.length - 1; ri >= 0; ri--) {
+        for (let ri = 0; ri < roundKeys.length; ri++) {
             const winners = region.round_winners[roundKeys[ri]] || [];
-            if (winners.length > 0) {
-                if (ri > latestRoundIdx) {
-                    latestRoundIdx = ri;
-                    latestWinner = winners[winners.length - 1];
-                    latestRoundKey = roundKeys[ri];
+            for (const w of winners) {
+                const key = `${region.name}|${roundKeys[ri]}|${w.toLowerCase().trim()}`;
+                currentWinnerKeys.add(key);
+                // If we have a previous snapshot, check if this is new
+                if (previousWinnerKeys && !previousWinnerKeys.has(key)) {
+                    allNewWinners.push({ winner: w, roundKey: roundKeys[ri], roundIdx: ri, regionName: region.name });
                 }
             }
         }
     }
 
-    if (!latestWinner || !latestRoundKey) return;
-
-    const regionName = getRegionForTeam(latestWinner);
-    const pts = roundPoints[latestRoundIdx] || 1;
-
-    // Find who picked the winner for this round
-    const whoGotIt = [];
-    for (const p of participants) {
-        const pRegion = p.regions.find(r => r.name === regionName);
-        if (!pRegion) continue;
-        const picks = pRegion.round_winners[latestRoundKey] || [];
-        const picked = picks.find(pk => pk.toLowerCase().trim() === latestWinner.toLowerCase().trim());
-        if (picked) whoGotIt.push(p.name + " +" + pts);
+    // First load — store the snapshot, don't notify (everything would be "new")
+    if (!previousWinnerKeys) {
+        previousWinnerKeys = currentWinnerKeys;
+        return;
     }
 
-    const msg = `\u{1F6A8} ${latestWinner} advances! ${whoGotIt.length > 0 ? whoGotIt.join(", ") : "Nobody picked this one!"}`;
-    showNotification(msg);
+    previousWinnerKeys = currentWinnerKeys;
+
+    if (allNewWinners.length === 0) return;
+
+    // Build notification messages for each new winner
+    const messages = [];
+    for (const nw of allNewWinners) {
+        const pts = roundPoints[nw.roundIdx] || 1;
+        const whoGotIt = [];
+        for (const p of participants) {
+            const pRegion = p.regions.find(r => r.name === nw.regionName);
+            if (!pRegion) continue;
+            const picks = pRegion.round_winners[nw.roundKey] || [];
+            if (picks.some(pk => pk.toLowerCase().trim() === nw.winner.toLowerCase().trim())) {
+                whoGotIt.push(p.name + " +" + pts);
+            }
+        }
+        const roundLabel = roundLabelsNotif[nw.roundIdx];
+        messages.push(`\u{1F6A8} ${nw.winner} advances (${roundLabel})! ${whoGotIt.length > 0 ? whoGotIt.join(", ") : "Nobody picked this one!"}`);
+    }
+
+    // Show all new results in one banner
+    showNotification(messages.join(" \u{1F3C0} "));
 }
 
 // ===== Leaderboard =====
