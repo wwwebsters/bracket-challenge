@@ -1660,8 +1660,14 @@ footer {
     font-family: var(--font-display);
     font-size: 24px;
     letter-spacing: 2px;
-    margin-bottom: 16px;
+    margin-bottom: 4px;
     color: var(--accent);
+}
+
+.busted-subheader {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
 }
 
 .busted-grid {
@@ -1720,6 +1726,10 @@ footer {
 
 .busted-bar-fill.danger {
     background: linear-gradient(90deg, var(--wrong), #dc2626);
+}
+
+.busted-bar-fill.warning {
+    background: linear-gradient(90deg, #f59e0b, #d97706);
 }
 
 .busted-detail {

@@ -1670,62 +1670,82 @@ function renderBracketBustedMeter() {
     const participants = bracketData.participants;
     const master = bracketData.master;
     const roundKeys = ["Round of 32", "Sweet 16", "Elite 8", "Final Four", "Finalist", "Champion"];
+    const roundLabels = ["R32", "S16", "E8", "F4", "Finals", "Champ"];
+    const scoringValues = Object.values(bracketData.scoring);
 
-    // For each participant, count alive vs eliminated remaining picks
-    const bustedData = participants.map(p => {
+    // Count total remaining games in the tournament
+    // Each round has a fixed number of games: R64=32, R32=16, S16=8, E8=4, F4=2, Final=1
+    const gamesPerRound = [16, 8, 4, 2, 1, 1]; // games that PRODUCE winners for each round key
+    let totalRemainingGames = 0;
+    for (let rki = 0; rki < roundKeys.length; rki++) {
+        let completedInRound = 0;
+        for (const region of master.regions) {
+            completedInRound += (region.round_winners[roundKeys[rki]] || []).length;
+        }
+        totalRemainingGames += gamesPerRound[rki] - completedInRound;
+    }
+
+    // For each participant, count future picks still alive vs eliminated
+    const healthData = participants.map(p => {
         let alive = 0;
         let eliminated = 0;
-        let total = 0;
+        let alivePoints = 0;
 
         for (let ri = 0; ri < 4; ri++) {
             const pickRegion = p.regions[ri];
             const masterRegion = master.regions[ri];
 
-            for (const rk of roundKeys) {
+            for (let rki = 0; rki < roundKeys.length; rki++) {
+                const rk = roundKeys[rki];
                 const picks = pickRegion.round_winners[rk] || [];
                 const masterWinners = (masterRegion.round_winners[rk] || []).map(w => w.toLowerCase().trim());
+                const pts = scoringValues[rki] || 0;
 
                 for (const pick of picks) {
                     const pickLower = pick.toLowerCase().trim();
-                    // Skip already scored correct picks
+                    // Skip already scored correct picks — those are in the past
                     if (masterWinners.includes(pickLower)) continue;
-                    total++;
+                    // This is a future pick — is the team still alive?
                     if (isTeamEliminated(pickLower, masterRegion)) {
                         eliminated++;
                     } else {
                         alive++;
+                        alivePoints += pts;
                     }
                 }
             }
         }
 
-        const bustedPct = total > 0 ? Math.round((eliminated / total) * 100) : 0;
-        let icon = "\ud83d\udcaa"; // flexed biceps
-        if (bustedPct > 70) icon = "\ud83d\udc80"; // skull
-        else if (bustedPct > 50) icon = "\ud83d\ude30"; // anxious face
+        const totalFuture = alive + eliminated;
+        const alivePct = totalFuture > 0 ? Math.round((alive / totalFuture) * 100) : 100;
+        let icon = "\ud83d\udcaa"; // flexed biceps — strong
+        let status = "Looking strong";
+        if (alivePct <= 25) { icon = "\ud83d\udc80"; status = "Life support"; }
+        else if (alivePct <= 50) { icon = "\ud83d\ude30"; status = "On the ropes"; }
+        else if (alivePct <= 75) { icon = "\ud83e\udd1e"; status = "Hanging in there"; }
 
-        return { name: p.name, alive, eliminated, total, bustedPct, icon };
+        return { name: p.name, alive, eliminated, totalFuture, alivePct, alivePoints, icon, status };
     });
 
-    // Sort by most busted
-    bustedData.sort((a, b) => b.bustedPct - a.bustedPct);
+    // Sort by best positioned (most alive picks)
+    healthData.sort((a, b) => b.alivePct - a.alivePct || b.alivePoints - a.alivePoints);
 
     let html = `<div class="busted-header">\ud83c\udfe5 BRACKET HEALTH CHECK</div>`;
+    html += `<div class="busted-subheader">${totalRemainingGames} game${totalRemainingGames !== 1 ? 's' : ''} remaining in the tournament</div>`;
     html += `<div class="busted-grid">`;
 
-    for (const d of bustedData) {
-        const alivePct = d.total > 0 ? Math.round((d.alive / d.total) * 100) : 100;
-        const barClass = alivePct < 30 ? "danger" : "";
+    for (const d of healthData) {
+        const barClass = d.alivePct < 30 ? "danger" : d.alivePct < 50 ? "warning" : "";
         html += `
             <div class="busted-card">
                 <div class="busted-card-top">
                     <span class="busted-name">${d.name}</span>
-                    <span class="busted-icon">${d.icon}</span>
+                    <span class="busted-icon">${d.icon} ${d.status}</span>
                 </div>
                 <div class="busted-bar-track">
-                    <div class="busted-bar-fill ${barClass}" style="width: ${Math.max(alivePct, 5)}%">${alivePct}%</div>
+                    <div class="busted-bar-fill ${barClass}" style="width: ${Math.max(d.alivePct, 5)}%">${d.alivePct}%</div>
                 </div>
-                <div class="busted-detail">${d.alive} alive / ${d.eliminated} eliminated out of ${d.total} remaining picks</div>
+                <div class="busted-detail">${d.alive} picks still alive (${d.alivePoints} pts possible) \u2022 ${d.eliminated} eliminated</div>
             </div>
         `;
     }
