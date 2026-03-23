@@ -1685,16 +1685,18 @@ function renderBracketBustedMeter() {
         totalRemainingGames += gamesPerRound[rki] - completedInRound;
     }
 
-    // For each participant, count future picks still alive vs eliminated
+    // For each participant, count unique teams still alive vs eliminated
+    // A team only counts ONCE regardless of how many rounds they're picked for
     const healthData = participants.map(p => {
-        let alive = 0;
-        let eliminated = 0;
+        const teamsAlive = new Set();
+        const teamsEliminated = new Set();
         let alivePoints = 0;
 
         for (let ri = 0; ri < 4; ri++) {
             const pickRegion = p.regions[ri];
             const masterRegion = master.regions[ri];
 
+            // Collect all unique teams this person still needs to win future games
             for (let rki = 0; rki < roundKeys.length; rki++) {
                 const rk = roundKeys[rki];
                 const picks = pickRegion.round_winners[rk] || [];
@@ -1703,19 +1705,21 @@ function renderBracketBustedMeter() {
 
                 for (const pick of picks) {
                     const pickLower = pick.toLowerCase().trim();
-                    // Skip already scored correct picks — those are in the past
+                    // Skip already scored correct picks
                     if (masterWinners.includes(pickLower)) continue;
-                    // This is a future pick — is the team still alive?
+                    // Check if team is eliminated
                     if (isTeamEliminated(pickLower, masterRegion)) {
-                        eliminated++;
+                        teamsEliminated.add(pickLower);
                     } else {
-                        alive++;
+                        teamsAlive.add(pickLower);
                         alivePoints += pts;
                     }
                 }
             }
         }
 
+        const alive = teamsAlive.size;
+        const eliminated = teamsEliminated.size;
         const totalFuture = alive + eliminated;
         const alivePct = totalFuture > 0 ? Math.round((alive / totalFuture) * 100) : 100;
         let icon = "\ud83d\udcaa"; // flexed biceps — strong
@@ -1745,7 +1749,7 @@ function renderBracketBustedMeter() {
                 <div class="busted-bar-track">
                     <div class="busted-bar-fill ${barClass}" style="width: ${Math.max(d.alivePct, 5)}%">${d.alivePct}%</div>
                 </div>
-                <div class="busted-detail">${d.alive} picks still alive (${d.alivePoints} pts possible) \u2022 ${d.eliminated} eliminated</div>
+                <div class="busted-detail">${d.alive} team${d.alive !== 1 ? 's' : ''} still alive (${d.alivePoints} pts possible) \u2022 ${d.eliminated} eliminated</div>
             </div>
         `;
     }
