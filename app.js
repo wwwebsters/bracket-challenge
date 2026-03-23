@@ -1723,44 +1723,73 @@ function renderBracketBustedMeter() {
         totalRemainingGames += gamesPerRound[rki] - completedInRound;
     }
 
-    // Helper: find the master region that actually contains a team
-    function findMasterRegionForTeam(teamName) {
-        for (const mr of master.regions) {
-            for (const matchup of mr.matchups) {
-                for (const team of matchup) {
-                    if (team.name.toLowerCase().trim() === teamName) return mr;
+    // Build set of ALL teams still alive in the tournament
+    // A team is alive if it's in the latest completed round's winners
+    // Find the furthest completed round per region
+    const teamsStillAlive = new Set();
+    for (const region of master.regions) {
+        // Work backwards from latest round to find the most recent winners list
+        let latestWinners = null;
+        for (let rki = roundKeys.length - 1; rki >= 0; rki--) {
+            const winners = region.round_winners[roundKeys[rki]] || [];
+            if (winners.length > 0) {
+                latestWinners = winners;
+                break;
+            }
+        }
+        if (latestWinners) {
+            for (const w of latestWinners) teamsStillAlive.add(w.toLowerCase().trim());
+        }
+    }
+
+    // Also add teams whose R32 game hasn't been played yet (still alive in R64 winners)
+    // These are R64 winners whose R32 matchup hasn't produced a S16 winner yet
+    for (let ri = 0; ri < master.regions.length; ri++) {
+        const region = master.regions[ri];
+        const r32Winners = (region.round_winners["Round of 32"] || []).map(w => w.toLowerCase().trim());
+        const s16Winners = (region.round_winners["Sweet 16"] || []).map(w => w.toLowerCase().trim());
+        // Check each R32 matchup pair
+        for (let pair = 0; pair < 4; pair++) {
+            const mi1 = pair * 2;
+            const mi2 = pair * 2 + 1;
+            const m1t1 = region.matchups[mi1][0].name.toLowerCase().trim();
+            const m1t2 = region.matchups[mi1][1].name.toLowerCase().trim();
+            const m2t1 = region.matchups[mi2][0].name.toLowerCase().trim();
+            const m2t2 = region.matchups[mi2][1].name.toLowerCase().trim();
+            const w1 = r32Winners.find(w => w === m1t1 || w === m1t2);
+            const w2 = r32Winners.find(w => w === m2t1 || w === m2t2);
+            if (w1 && w2) {
+                const gameDecided = s16Winners.includes(w1) || s16Winners.includes(w2);
+                if (!gameDecided) {
+                    // R32 game hasn't been played — both teams still alive
+                    teamsStillAlive.add(w1);
+                    teamsStillAlive.add(w2);
                 }
             }
         }
-        return null;
     }
 
-    // For each participant, count unique teams still alive vs eliminated
-    // A team counts ONCE — is it still in the tournament or not?
+    // For each participant, count unique teams in their FUTURE picks
+    // that are still alive vs eliminated
     const healthData = participants.map(p => {
-        const teamsAlive = new Set();
-        const teamsEliminated = new Set();
+        const teamsChecked = new Set();
+        const myAlive = new Set();
+        const myEliminated = new Set();
 
         for (let ri = 0; ri < 4; ri++) {
             const pickRegion = p.regions[ri];
-
-            // Collect ALL unique teams this person has picked for any remaining round
-            for (let rki = 0; rki < roundKeys.length; rki++) {
+            // Only look at Sweet 16 onward (skip R32 since those are scored)
+            for (let rki = 1; rki < roundKeys.length; rki++) {
                 const rk = roundKeys[rki];
                 const picks = pickRegion.round_winners[rk] || [];
-
                 for (const pick of picks) {
                     const pickLower = pick.toLowerCase().trim();
-                    // Already counted this team
-                    if (teamsAlive.has(pickLower) || teamsEliminated.has(pickLower)) continue;
-                    // Find the CORRECT master region for this team (not the pick's region)
-                    const correctRegion = findMasterRegionForTeam(pickLower);
-                    if (!correctRegion) { teamsEliminated.add(pickLower); continue; }
-                    // Is this team still in the tournament?
-                    if (isTeamEliminated(pickLower, correctRegion)) {
-                        teamsEliminated.add(pickLower);
+                    if (teamsChecked.has(pickLower)) continue;
+                    teamsChecked.add(pickLower);
+                    if (teamsStillAlive.has(pickLower)) {
+                        myAlive.add(pickLower);
                     } else {
-                        teamsAlive.add(pickLower);
+                        myEliminated.add(pickLower);
                     }
                 }
             }
@@ -1770,25 +1799,26 @@ function renderBracketBustedMeter() {
         let alivePoints = 0;
         for (let ri = 0; ri < 4; ri++) {
             const pickRegion = p.regions[ri];
-            for (let rki = 0; rki < roundKeys.length; rki++) {
+            for (let rki = 1; rki < roundKeys.length; rki++) {
                 const rk = roundKeys[rki];
                 const picks = pickRegion.round_winners[rk] || [];
                 const pts = scoringValues[rki] || 0;
                 for (const pick of picks) {
                     const pickLower = pick.toLowerCase().trim();
-                    if (!teamsAlive.has(pickLower)) continue;
-                    // Check if already scored in the correct master region
-                    const correctRegion = findMasterRegionForTeam(pickLower);
-                    const masterWinners = correctRegion ? (correctRegion.round_winners[rk] || []).map(w => w.toLowerCase().trim()) : [];
-                    if (!masterWinners.includes(pickLower)) {
-                        alivePoints += pts;
+                    if (!myAlive.has(pickLower)) continue;
+                    // Check if already scored
+                    let alreadyScored = false;
+                    for (const mr of master.regions) {
+                        const mw = (mr.round_winners[rk] || []).map(w => w.toLowerCase().trim());
+                        if (mw.includes(pickLower)) { alreadyScored = true; break; }
                     }
+                    if (!alreadyScored) alivePoints += pts;
                 }
             }
         }
 
-        const alive = teamsAlive.size;
-        const eliminated = teamsEliminated.size;
+        const alive = myAlive.size;
+        const eliminated = myEliminated.size;
         const totalFuture = alive + eliminated;
         const alivePct = totalFuture > 0 ? Math.round((alive / totalFuture) * 100) : 100;
         let icon = "\ud83d\udcaa"; // flexed biceps — strong
