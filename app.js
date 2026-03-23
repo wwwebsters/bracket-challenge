@@ -1686,32 +1686,48 @@ function renderBracketBustedMeter() {
     }
 
     // For each participant, count unique teams still alive vs eliminated
-    // A team only counts ONCE regardless of how many rounds they're picked for
+    // A team counts ONCE — is it still in the tournament or not?
     const healthData = participants.map(p => {
         const teamsAlive = new Set();
         const teamsEliminated = new Set();
-        let alivePoints = 0;
 
         for (let ri = 0; ri < 4; ri++) {
             const pickRegion = p.regions[ri];
             const masterRegion = master.regions[ri];
 
-            // Collect all unique teams this person still needs to win future games
+            // Collect ALL unique teams this person has picked for any remaining round
+            for (let rki = 0; rki < roundKeys.length; rki++) {
+                const rk = roundKeys[rki];
+                const picks = pickRegion.round_winners[rk] || [];
+
+                for (const pick of picks) {
+                    const pickLower = pick.toLowerCase().trim();
+                    // Already counted this team
+                    if (teamsAlive.has(pickLower) || teamsEliminated.has(pickLower)) continue;
+                    // Is this team still in the tournament?
+                    if (isTeamEliminated(pickLower, masterRegion)) {
+                        teamsEliminated.add(pickLower);
+                    } else {
+                        teamsAlive.add(pickLower);
+                    }
+                }
+            }
+        }
+
+        // Calculate points still possible from alive teams
+        let alivePoints = 0;
+        for (let ri = 0; ri < 4; ri++) {
+            const pickRegion = p.regions[ri];
+            const masterRegion = master.regions[ri];
             for (let rki = 0; rki < roundKeys.length; rki++) {
                 const rk = roundKeys[rki];
                 const picks = pickRegion.round_winners[rk] || [];
                 const masterWinners = (masterRegion.round_winners[rk] || []).map(w => w.toLowerCase().trim());
                 const pts = scoringValues[rki] || 0;
-
                 for (const pick of picks) {
                     const pickLower = pick.toLowerCase().trim();
-                    // Skip already scored correct picks
-                    if (masterWinners.includes(pickLower)) continue;
-                    // Check if team is eliminated
-                    if (isTeamEliminated(pickLower, masterRegion)) {
-                        teamsEliminated.add(pickLower);
-                    } else {
-                        teamsAlive.add(pickLower);
+                    // Only count unscored picks for alive teams
+                    if (!masterWinners.includes(pickLower) && teamsAlive.has(pickLower)) {
                         alivePoints += pts;
                     }
                 }
