@@ -8,9 +8,15 @@ import urllib.request
 import urllib.error
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+def et_now():
+    """Get current time in US Eastern (UTC-4 during EDT, UTC-5 during EST)."""
+    utc = datetime.now(timezone.utc)
+    # March-November is EDT (UTC-4)
+    return utc + timedelta(hours=-4)
 DATA_FILE = os.path.join(SCRIPT_DIR, "bracket_data.json")
 
 ESPN_SCOREBOARD_URL = "https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard?groups=100&limit=100&dates={date}"
@@ -129,7 +135,7 @@ def get_tournament_dates():
 
 def fetch_completed_games():
     completed = []
-    today = datetime.now().strftime("%Y%m%d")
+    today = et_now().strftime("%Y%m%d")
     dates = get_tournament_dates()
     dates_to_check = [d for d in dates if d <= today]
 
@@ -254,7 +260,7 @@ def main():
     updated = update_master_bracket(bracket_data, completed_games)
 
     # Always update today's results for the notification banner
-    today = datetime.now().strftime("%Y%m%d")
+    today = et_now().strftime("%Y%m%d")
     today_results = []
     for game in completed_games:
         if game["date"] == today and "first four" not in game["espn_round"]:
