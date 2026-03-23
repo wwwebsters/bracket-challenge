@@ -395,7 +395,8 @@
           "Sweet 16": [
             "Houston",
             "Illinois",
-            "Nebraska"
+            "Nebraska",
+            "Iowa"
           ],
           "Elite 8": [],
           "Final Four": [],
@@ -516,7 +517,8 @@
           ],
           "Sweet 16": [
             "Michigan",
-            "Iowa State"
+            "Iowa State",
+            "Tennessee"
           ],
           "Elite 8": [],
           "Final Four": [],
@@ -4198,6 +4200,12 @@
   ],
   "today_results": [
     {
+      "winner": "Iowa",
+      "loser_espn": "Florida Gators",
+      "score": "72-73",
+      "round": "Sweet 16"
+    },
+    {
       "winner": "Purdue",
       "loser_espn": "Miami Hurricanes",
       "score": "79-69",
@@ -4210,11 +4218,17 @@
       "round": "Sweet 16"
     },
     {
+      "winner": "Tennessee",
+      "loser_espn": "Virginia Cavaliers",
+      "score": "72-79",
+      "round": "Sweet 16"
+    },
+    {
       "winner": "St. John's",
       "loser_espn": "Kansas Jayhawks",
       "score": "65-67",
       "round": "Sweet 16"
     }
   ],
-  "last_updated": "2026-03-22T23:55:55Z"
+  "last_updated": "2026-03-23T02:25:21Z"
 }
