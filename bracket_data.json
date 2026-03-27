@@ -10,31 +10,31 @@
   "standings": [
     {
       "name": "Dad",
-      "score": 50
+      "score": 59
     },
     {
       "name": "Jared",
-      "score": 48
+      "score": 57
     },
     {
       "name": "Molly",
-      "score": 47
+      "score": 53
     },
     {
       "name": "Lauren",
-      "score": 46
-    },
-    {
-      "name": "Megan",
-      "score": 45
+      "score": 52
     },
     {
       "name": "Gavin",
-      "score": 44
+      "score": 50
     },
     {
       "name": "Mom",
-      "score": 42
+      "score": 48
+    },
+    {
+      "name": "Megan",
+      "score": 48
     }
   ],
   "master": {
@@ -278,7 +278,10 @@
             "Purdue",
             "Arizona"
           ],
-          "Elite 8": [],
+          "Elite 8": [
+            "Arizona",
+            "Purdue"
+          ],
           "Final Four": [],
           "Finalist": []
         },
@@ -400,7 +403,10 @@
             "Nebraska",
             "Iowa"
           ],
-          "Elite 8": [],
+          "Elite 8": [
+            "Illinois",
+            "Iowa"
+          ],
           "Final Four": [],
           "Finalist": [],
           "Champion": []
@@ -536,7 +542,7 @@
       "id": "dad",
       "name": "Dad",
       "tiebreaker": "62 - 58",
-      "score": 50,
+      "score": 59,
       "regions": [
         {
           "matchups": [
@@ -1060,7 +1066,7 @@
       "id": "mom",
       "name": "Mom",
       "tiebreaker": "62 - 51",
-      "score": 42,
+      "score": 48,
       "regions": [
         {
           "matchups": [
@@ -1584,7 +1590,7 @@
       "id": "jared",
       "name": "Jared",
       "tiebreaker": "80-75",
-      "score": 48,
+      "score": 57,
       "regions": [
         {
           "matchups": [
@@ -2108,7 +2114,7 @@
       "id": "megan",
       "name": "Megan",
       "tiebreaker": "82-74",
-      "score": 45,
+      "score": 48,
       "regions": [
         {
           "matchups": [
@@ -2632,7 +2638,7 @@
       "id": "lauren",
       "name": "Lauren",
       "tiebreaker": "85 - 78",
-      "score": 46,
+      "score": 52,
       "regions": [
         {
           "matchups": [
@@ -3156,7 +3162,7 @@
       "id": "gavin",
       "name": "Gavin",
       "tiebreaker": "82-74",
-      "score": 44,
+      "score": 50,
       "regions": [
         {
           "matchups": [
@@ -3680,7 +3686,7 @@
       "id": "molly",
       "name": "Molly",
       "tiebreaker": "82-67",
-      "score": 47,
+      "score": 53,
       "regions": [
         {
           "matchups": [
@@ -4202,5 +4208,5 @@
     }
   ],
   "today_results": [],
-  "last_updated": "2026-03-23T06:53:48Z"
+  "last_updated": "2026-03-27T05:27:17Z"
 }
