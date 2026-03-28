@@ -1713,7 +1713,7 @@ function renderBracketBustedMeter() {
 
     // Count total remaining games in the tournament
     // Each round has a fixed number of games: R64=32, R32=16, S16=8, E8=4, F4=2, Final=1
-    const gamesPerRound = [16, 8, 4, 2, 1, 1]; // games that PRODUCE winners for each round key
+    const gamesPerRound = [32, 16, 8, 4, 2, 1]; // number of winners per round key (= games that produce them)
     let totalRemainingGames = 0;
     for (let rki = 0; rki < roundKeys.length; rki++) {
         let completedInRound = 0;
@@ -1769,68 +1769,47 @@ function renderBracketBustedMeter() {
         }
     }
 
-    // For each participant, count unique teams in their FUTURE picks
-    // that are still alive vs eliminated
+    // For each participant, count unscored picks where the team is still alive
+    // Compare alive picks to total remaining games for a health percentage
     const healthData = participants.map(p => {
-        const teamsChecked = new Set();
-        const myAlive = new Set();
-        const myEliminated = new Set();
-
-        for (let ri = 0; ri < 4; ri++) {
-            const pickRegion = p.regions[ri];
-            // Only look at Sweet 16 onward (skip R32 since those are scored)
-            for (let rki = 1; rki < roundKeys.length; rki++) {
-                const rk = roundKeys[rki];
-                const picks = pickRegion.round_winners[rk] || [];
-                for (const pick of picks) {
-                    const pickLower = pick.toLowerCase().trim();
-                    if (teamsChecked.has(pickLower)) continue;
-                    teamsChecked.add(pickLower);
-                    if (teamsStillAlive.has(pickLower)) {
-                        myAlive.add(pickLower);
-                    } else {
-                        myEliminated.add(pickLower);
-                    }
-                }
-            }
-        }
-
-        // Calculate points still possible from alive teams
+        let alivePicks = 0;
         let alivePoints = 0;
+
         for (let ri = 0; ri < 4; ri++) {
             const pickRegion = p.regions[ri];
-            for (let rki = 1; rki < roundKeys.length; rki++) {
+            for (let rki = 0; rki < roundKeys.length; rki++) {
                 const rk = roundKeys[rki];
                 const picks = pickRegion.round_winners[rk] || [];
                 const pts = scoringValues[rki] || 0;
                 for (const pick of picks) {
                     const pickLower = pick.toLowerCase().trim();
-                    if (!myAlive.has(pickLower)) continue;
-                    // Check if already scored
+                    // Skip already-scored picks
                     let alreadyScored = false;
                     for (const mr of master.regions) {
                         const mw = (mr.round_winners[rk] || []).map(w => w.toLowerCase().trim());
                         if (mw.includes(pickLower)) { alreadyScored = true; break; }
                     }
-                    if (!alreadyScored) alivePoints += pts;
+                    if (alreadyScored) continue;
+                    // Count this pick if the team is still alive
+                    if (teamsStillAlive.has(pickLower)) {
+                        alivePicks++;
+                        alivePoints += pts;
+                    }
                 }
             }
         }
 
-        const alive = myAlive.size;
-        const eliminated = myEliminated.size;
-        const totalFuture = alive + eliminated;
-        const alivePct = totalFuture > 0 ? Math.round((alive / totalFuture) * 100) : 100;
+        const alivePct = totalRemainingGames > 0 ? Math.round((alivePicks / totalRemainingGames) * 100) : 100;
         let icon = "\ud83d\udcaa"; // flexed biceps — strong
         let status = "Looking strong";
         if (alivePct <= 25) { icon = "\ud83d\udc80"; status = "Life support"; }
         else if (alivePct <= 50) { icon = "\ud83d\ude30"; status = "On the ropes"; }
         else if (alivePct <= 75) { icon = "\ud83e\udd1e"; status = "Hanging in there"; }
 
-        return { name: p.name, alive, eliminated, totalFuture, alivePct, alivePoints, icon, status };
+        return { name: p.name, alivePicks, alivePoints, alivePct, icon, status };
     });
 
-    // Sort by best positioned (most alive picks)
+    // Sort by best positioned (most alive picks relative to remaining games)
     healthData.sort((a, b) => b.alivePct - a.alivePct || b.alivePoints - a.alivePoints);
 
     let html = `<div class="busted-header">\ud83c\udfe5 BRACKET HEALTH CHECK</div>`;
@@ -1848,7 +1827,7 @@ function renderBracketBustedMeter() {
                 <div class="busted-bar-track">
                     <div class="busted-bar-fill ${barClass}" style="width: ${Math.max(d.alivePct, 5)}%">${d.alivePct}%</div>
                 </div>
-                <div class="busted-detail">${d.alive} team${d.alive !== 1 ? 's' : ''} still alive (${d.alivePoints} pts possible) \u2022 ${d.eliminated} eliminated</div>
+                <div class="busted-detail">${d.alivePicks} of ${totalRemainingGames} remaining picks alive (${d.alivePoints} pts possible)</div>
             </div>
         `;
     }
