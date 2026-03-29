@@ -1856,6 +1856,7 @@ function renderBracketBustedMeter() {
         const healthPct = bestProjected > 0 ? Math.round((d.projectedScore / bestProjected) * 100) : 100;
         d.healthPct = healthPct;
         if (d.eliminated) {
+            d.healthPct = 0;
             d.icon = "\ud83d\udc80"; d.status = "Eliminated";
         } else if (healthPct >= 90) {
             d.icon = "\ud83d\udcaa"; d.status = "Looking strong";
