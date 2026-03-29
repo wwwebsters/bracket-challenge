@@ -1684,6 +1684,10 @@ footer {
     transition: all 0.2s;
 }
 
+.busted-card.eliminated {
+    opacity: 0.5;
+}
+
 .busted-card-top {
     display: flex;
     align-items: center;

@@ -1781,8 +1781,13 @@ function renderBracketBustedMeter() {
         }
     }
 
-    // For each participant, count unscored picks where the team is still alive
-    // Compare alive picks to total remaining games for a health percentage
+    // For each participant, calculate bracket health from:
+    // 1. Current score
+    // 2. Alive picks remaining (unscored picks where team is still alive)
+    // 3. Whether they're eliminated (max possible < leader's score)
+    const sortedByScore = [...participants].sort((a, b) => b.score - a.score);
+    const leaderScore = sortedByScore[0].score;
+
     const healthData = participants.map(p => {
         let alivePicks = 0;
         let alivePoints = 0;
@@ -1802,7 +1807,6 @@ function renderBracketBustedMeter() {
                         if (mw.includes(pickLower)) { alreadyScored = true; break; }
                     }
                     if (alreadyScored) continue;
-                    // Count this pick if the team is still alive
                     if (teamsStillAlive.has(pickLower)) {
                         alivePicks++;
                         alivePoints += pts;
@@ -1811,35 +1815,46 @@ function renderBracketBustedMeter() {
             }
         }
 
-        const alivePct = totalRemainingGames > 0 ? Math.round((alivePicks / totalRemainingGames) * 100) : 100;
-        let icon = "\ud83d\udcaa"; // flexed biceps — strong
-        let status = "Looking strong";
-        if (alivePct <= 25) { icon = "\ud83d\udc80"; status = "Life support"; }
-        else if (alivePct <= 50) { icon = "\ud83d\ude30"; status = "On the ropes"; }
-        else if (alivePct <= 75) { icon = "\ud83e\udd1e"; status = "Hanging in there"; }
+        const maxPossible = p.score + alivePoints;
+        const eliminated = maxPossible < leaderScore;
 
-        return { name: p.name, alivePicks, alivePoints, alivePct, icon, status };
+        let icon, status;
+        if (eliminated) {
+            icon = "\ud83d\udc80"; status = "Eliminated";
+        } else if (alivePicks <= Math.floor(totalRemainingGames * 0.25)) {
+            icon = "\ud83d\ude30"; status = "On the ropes";
+        } else if (alivePicks <= Math.floor(totalRemainingGames * 0.5)) {
+            icon = "\ud83e\udd1e"; status = "Hanging in there";
+        } else {
+            icon = "\ud83d\udcaa"; status = "Looking strong";
+        }
+
+        return { name: p.name, score: p.score, alivePicks, alivePoints, maxPossible, eliminated, icon, status };
     });
 
-    // Sort by best positioned (most alive picks relative to remaining games)
-    healthData.sort((a, b) => b.alivePct - a.alivePct || b.alivePoints - a.alivePoints);
+    // Sort: eliminated last, then by max possible descending
+    healthData.sort((a, b) => {
+        if (a.eliminated !== b.eliminated) return a.eliminated ? 1 : -1;
+        return b.maxPossible - a.maxPossible || b.alivePicks - a.alivePicks;
+    });
 
     let html = `<div class="busted-header">\ud83c\udfe5 BRACKET HEALTH CHECK</div>`;
     html += `<div class="busted-subheader">${totalRemainingGames} game${totalRemainingGames !== 1 ? 's' : ''} remaining in the tournament</div>`;
     html += `<div class="busted-grid">`;
 
     for (const d of healthData) {
-        const barClass = d.alivePct < 30 ? "danger" : d.alivePct < 50 ? "warning" : "";
+        const barPct = totalRemainingGames > 0 ? Math.round((d.alivePicks / totalRemainingGames) * 100) : 100;
+        const barClass = d.eliminated ? "danger" : barPct < 30 ? "danger" : barPct < 50 ? "warning" : "";
         html += `
-            <div class="busted-card">
+            <div class="busted-card${d.eliminated ? ' eliminated' : ''}">
                 <div class="busted-card-top">
                     <span class="busted-name">${d.name}</span>
                     <span class="busted-icon">${d.icon} ${d.status}</span>
                 </div>
                 <div class="busted-bar-track">
-                    <div class="busted-bar-fill ${barClass}" style="width: ${Math.max(d.alivePct, 5)}%">${d.alivePct}%</div>
+                    <div class="busted-bar-fill ${barClass}" style="width: ${Math.max(barPct, 5)}%">${barPct}%</div>
                 </div>
-                <div class="busted-detail">${d.alivePicks} of ${totalRemainingGames} remaining picks alive (${d.alivePoints} pts possible)</div>
+                <div class="busted-detail">Score: ${d.score} | ${d.alivePicks} of ${totalRemainingGames} picks alive | Max: ${d.maxPossible} pts</div>
             </div>
         `;
     }
