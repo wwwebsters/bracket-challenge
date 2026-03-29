@@ -1781,56 +1781,57 @@ function renderBracketBustedMeter() {
         }
     }
 
-    // For each participant, calculate bracket health from:
-    // 1. Current score
-    // 2. Alive picks remaining (unscored picks where team is still alive)
-    // 3. Whether they're eliminated (max possible < leader's score)
+    // For each participant, calculate bracket health using:
+    // - calculateMaxPossible (same as Elimination Watch, for consistency)
+    // - Current score and competitive position relative to leader
     const sortedByScore = [...participants].sort((a, b) => b.score - a.score);
     const leaderScore = sortedByScore[0].score;
 
     const healthData = participants.map(p => {
-        let alivePicks = 0;
-        let alivePoints = 0;
+        const maxPossible = calculateMaxPossible(p);
+        const alivePoints = maxPossible - p.score;
+        const eliminated = maxPossible < leaderScore;
 
+        // Count alive picks for display
+        let alivePicks = 0;
         for (let ri = 0; ri < 4; ri++) {
             const pickRegion = p.regions[ri];
             for (let rki = 0; rki < roundKeys.length; rki++) {
                 const rk = roundKeys[rki];
                 const picks = pickRegion.round_winners[rk] || [];
-                const pts = scoringValues[rki] || 0;
                 for (const pick of picks) {
                     const pickLower = pick.toLowerCase().trim();
-                    // Skip already-scored picks
                     let alreadyScored = false;
                     for (const mr of master.regions) {
                         const mw = (mr.round_winners[rk] || []).map(w => w.toLowerCase().trim());
                         if (mw.includes(pickLower)) { alreadyScored = true; break; }
                     }
                     if (alreadyScored) continue;
-                    if (teamsStillAlive.has(pickLower)) {
-                        alivePicks++;
-                        alivePoints += pts;
-                    }
+                    if (teamsStillAlive.has(pickLower)) alivePicks++;
                 }
             }
         }
 
-        const maxPossible = p.score + alivePoints;
-        const eliminated = maxPossible < leaderScore;
-
-        let icon, status;
-        if (eliminated) {
-            icon = "\ud83d\udc80"; status = "Eliminated";
-        } else if (alivePicks <= Math.floor(totalRemainingGames * 0.25)) {
-            icon = "\ud83d\ude30"; status = "On the ropes";
-        } else if (alivePicks <= Math.floor(totalRemainingGames * 0.5)) {
-            icon = "\ud83e\udd1e"; status = "Hanging in there";
-        } else {
-            icon = "\ud83d\udcaa"; status = "Looking strong";
-        }
-
-        return { name: p.name, score: p.score, alivePicks, alivePoints, maxPossible, eliminated, icon, status };
+        return { name: p.name, score: p.score, alivePicks, alivePoints, maxPossible, eliminated };
     });
+
+    // Find the highest max possible across all participants for scaling the bar
+    const bestMax = Math.max(...healthData.map(d => d.maxPossible));
+
+    // Assign status based on competitive position (max possible vs best max)
+    for (const d of healthData) {
+        const competitivePct = bestMax > 0 ? Math.round((d.maxPossible / bestMax) * 100) : 100;
+        d.competitivePct = competitivePct;
+        if (d.eliminated) {
+            d.icon = "\ud83d\udc80"; d.status = "Eliminated";
+        } else if (competitivePct >= 90) {
+            d.icon = "\ud83d\udcaa"; d.status = "Looking strong";
+        } else if (competitivePct >= 75) {
+            d.icon = "\ud83e\udd1e"; d.status = "Hanging in there";
+        } else {
+            d.icon = "\ud83d\ude30"; d.status = "On the ropes";
+        }
+    }
 
     // Sort: eliminated last, then by max possible descending
     healthData.sort((a, b) => {
@@ -1843,8 +1844,7 @@ function renderBracketBustedMeter() {
     html += `<div class="busted-grid">`;
 
     for (const d of healthData) {
-        const barPct = totalRemainingGames > 0 ? Math.round((d.alivePicks / totalRemainingGames) * 100) : 100;
-        const barClass = d.eliminated ? "danger" : barPct < 30 ? "danger" : barPct < 50 ? "warning" : "";
+        const barClass = d.eliminated ? "danger" : d.competitivePct < 75 ? "warning" : "";
         html += `
             <div class="busted-card${d.eliminated ? ' eliminated' : ''}">
                 <div class="busted-card-top">
@@ -1852,7 +1852,7 @@ function renderBracketBustedMeter() {
                     <span class="busted-icon">${d.icon} ${d.status}</span>
                 </div>
                 <div class="busted-bar-track">
-                    <div class="busted-bar-fill ${barClass}" style="width: ${Math.max(barPct, 5)}%">${barPct}%</div>
+                    <div class="busted-bar-fill ${barClass}" style="width: ${Math.max(d.competitivePct, 5)}%">${d.competitivePct}%</div>
                 </div>
                 <div class="busted-detail">Score: ${d.score} | ${d.alivePicks} of ${totalRemainingGames} picks alive | Max: ${d.maxPossible} pts</div>
             </div>
