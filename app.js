@@ -2040,7 +2040,13 @@ function renderDailyRecap() {
     // Last place
     const last = sorted[sorted.length - 1];
     if (last && sorted.length > 2) {
-        lines.push(`${last.name} is holding down the fort at the bottom with ${last.score} points. Never too late for ${pronoun(last.name, 'object')} to make a comeback!`);
+        const lastMaxPossible = calculateMaxPossible(last);
+        const lastEliminated = lastMaxPossible < sorted[0].score;
+        if (lastEliminated) {
+            lines.push(`${last.name} is at the bottom with ${last.score} points and has been mathematically eliminated. Better luck next year!`);
+        } else {
+            lines.push(`${last.name} is holding down the fort at the bottom with ${last.score} points. Never too late for ${pronoun(last.name, 'object')} to make a comeback!`);
+        }
     }
 
     // Count completed games
