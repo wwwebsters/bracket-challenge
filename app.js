@@ -978,6 +978,18 @@ function renderGames() {
                         </div>
                     </div>
                 `;
+                gamesHtml += `<div class="who-picked">`;
+                for (const player of bracketData.participants) {
+                    const region = player.regions.find(r => r.name === game.region);
+                    if (!region) continue;
+                    const picks = region.round_winners[game.roundKey] || [];
+                    const pickedWinner = picks.find(p =>
+                        p.toLowerCase().trim() === game.team1Name.toLowerCase().trim() ||
+                        p.toLowerCase().trim() === game.team2Name.toLowerCase().trim()
+                    );
+                    gamesHtml += `<span class="picker-badge" title="${player.name} picked ${pickedWinner || '?'}">${player.name}: ${pickedWinner || '?'}</span>`;
+                }
+                gamesHtml += `</div><div style="margin-bottom: 12px;"></div>`;
             }
         }
     }
