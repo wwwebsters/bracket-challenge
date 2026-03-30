@@ -119,7 +119,7 @@ async function loadApp() {
         bracketData = await resp.json();
         renderDailyRecap();
         renderLeaderboard();
-        renderBracketBustedMeter();
+        // renderBracketBustedMeter();
         renderEliminationTracker();
         renderBracketSelector();
         renderH2HSelectors();
@@ -321,7 +321,22 @@ function isTeamEliminated(teamName, masterRegion) {
         if (teamInBracket) break;
     }
 
-    if (!teamInBracket) return true;
+    // Team not in this region — find its actual region and check there
+    // (handles cross-region picks for Finalist/Champion rounds)
+    if (!teamInBracket) {
+        const allRegions = bracketData.master.regions;
+        for (const region of allRegions) {
+            if (region === masterRegion) continue;
+            for (const matchup of region.matchups) {
+                for (const team of matchup) {
+                    if (team.name.toLowerCase().trim() === teamName) {
+                        return isTeamEliminated(teamName, region);
+                    }
+                }
+            }
+        }
+        return true; // team not found in any region
+    }
 
     // R64: check if team is among R32 winners (Round of 32 = teams that made it to R32)
     const r32Winners = (masterRegion.round_winners["Round of 32"] || []).map(w => w.toLowerCase().trim());
