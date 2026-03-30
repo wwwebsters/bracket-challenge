@@ -2086,29 +2086,6 @@ function renderDailyRecap() {
         lines.push(gameMsg);
     }
 
-    // Most busted bracket
-    const bustedData = participants.map(p => {
-        let eliminated = 0, total = 0;
-        for (let ri = 0; ri < 4; ri++) {
-            const pickRegion = p.regions[ri];
-            const masterRegion = master.regions[ri];
-            for (const rk of roundKeys) {
-                const picks = pickRegion.round_winners[rk] || [];
-                const masterWinners = (masterRegion.round_winners[rk] || []).map(w => w.toLowerCase().trim());
-                for (const pick of picks) {
-                    if (masterWinners.includes(pick.toLowerCase().trim())) continue;
-                    total++;
-                    if (isTeamEliminated(pick.toLowerCase().trim(), masterRegion)) eliminated++;
-                }
-            }
-        }
-        return { name: p.name, pct: total > 0 ? Math.round((eliminated / total) * 100) : 0 };
-    });
-    bustedData.sort((a, b) => b.pct - a.pct);
-    if (bustedData[0] && bustedData[0].pct > 30) {
-        lines.push(`${bustedData[0].name}'s bracket is looking rough with ${bustedData[0].pct}% of ${pronoun(bustedData[0].name, 'possessive')} remaining picks eliminated. Hang in there!`);
-    }
-
     if (lines.length === 0) {
         lines.push("The tournament hasn't started yet. Check back once the games begin for your daily recap!");
     }
