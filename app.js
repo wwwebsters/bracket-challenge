@@ -392,17 +392,89 @@ function isTeamEliminated(teamName, masterRegion) {
 }
 
 // ===== Elimination Tracker =====
+
+// Collect all Finalist and Champion picks for a participant (team names, lowercased)
+function getFinalistAndChampionPicks(participant) {
+    const finalists = [];
+    const champions = [];
+    for (const region of participant.regions) {
+        for (const f of (region.round_winners["Finalist"] || [])) finalists.push(f.toLowerCase().trim());
+        for (const c of (region.round_winners["Champion"] || [])) champions.push(c.toLowerCase().trim());
+    }
+    return { finalists, champions };
+}
+
+// Calculate a participant's score under a specific scenario
+// scenario: { finalists: [team1, team2], champion: team }
+function scoreForScenario(participant, scenario) {
+    const scoring = bracketData.scoring;
+    const finalistPts = Object.values(scoring)[4] || 5; // Finalists
+    const championPts = Object.values(scoring)[5] || 6; // Champions
+    let bonus = 0;
+    const picks = getFinalistAndChampionPicks(participant);
+    for (const f of scenario.finalists) {
+        if (picks.finalists.includes(f)) bonus += finalistPts;
+    }
+    if (picks.champions.includes(scenario.champion)) bonus += championPts;
+    return participant.score + bonus;
+}
+
+// Check if a participant can finish first (or tied) in any possible remaining outcome
+function canWin(participant, allParticipants) {
+    const master = bracketData.master;
+    const f4Teams = [];
+    for (const region of master.regions) {
+        const f4 = (region.round_winners["Final Four"] || []).map(t => t.toLowerCase().trim());
+        f4Teams.push(...f4);
+    }
+
+    // If F4 isn't set yet, fall back to simple max possible check
+    if (f4Teams.length < 2) {
+        const leaderScore = Math.max(...allParticipants.map(p => p.score));
+        return calculateMaxPossible(participant) >= leaderScore;
+    }
+
+    // Determine semi pairings from region order: East vs West, South vs Midwest
+    // F4 winners are stored one per region in order: East, West, South, Midwest
+    const semi1 = [f4Teams[0], f4Teams[1]].filter(Boolean); // East vs West
+    const semi2 = [f4Teams[2], f4Teams[3]].filter(Boolean); // South vs Midwest
+
+    // Generate all possible outcomes
+    const scenarios = [];
+    for (const s1Winner of semi1) {
+        for (const s2Winner of semi2) {
+            // Championship: s1Winner vs s2Winner
+            for (const champWinner of [s1Winner, s2Winner]) {
+                scenarios.push({
+                    finalists: [s1Winner, s2Winner],
+                    champion: champWinner
+                });
+            }
+        }
+    }
+
+    // Check if participant finishes first in any scenario
+    for (const scenario of scenarios) {
+        const myScore = scoreForScenario(participant, scenario);
+        const maxOther = Math.max(...allParticipants
+            .filter(p => p.name !== participant.name)
+            .map(p => scoreForScenario(p, scenario))
+        );
+        if (myScore >= maxOther) return true;
+    }
+    return false;
+}
+
 function renderEliminationTracker() {
     const container = document.getElementById("elimination-tracker");
     const participants = [...bracketData.participants].sort((a, b) => b.score - a.score);
-    const leaderScore = participants[0].score;
 
     let html = `<div class="elim-header">\u{1F480} ELIMINATION WATCH</div>`;
     html += `<div class="elim-grid">`;
 
     for (const p of participants) {
         const maxPossible = calculateMaxPossible(p);
-        const eliminated = maxPossible < leaderScore;
+        const eliminated = !canWin(p, bracketData.participants);
         const status = eliminated ? "eliminated" : "alive";
         const badgeText = eliminated ? "\u{274C} Eliminated" : "\u{2705} Still Alive";
 
@@ -2055,8 +2127,7 @@ function renderDailyRecap() {
     // Last place
     const last = sorted[sorted.length - 1];
     if (last && sorted.length > 2) {
-        const lastMaxPossible = calculateMaxPossible(last);
-        const lastEliminated = lastMaxPossible < sorted[0].score;
+        const lastEliminated = !canWin(last, bracketData.participants);
         if (lastEliminated) {
             lines.push(`${last.name} is at the bottom with ${last.score} points and has been mathematically eliminated. Better luck next year!`);
         } else {
