@@ -1059,7 +1059,7 @@ function renderGames() {
             team1Name: t1, team1Seed: getSeedForTeam(t1),
             team2Name: t2, team2Seed: getSeedForTeam(t2),
             winner: winner ? (winner === t1.toLowerCase().trim() ? t1 : t2) : null,
-            region: "Final Four",
+            region: "Final Four", finalistRegion: "East",
             roundDisplay: "Final Four", roundKey: "Finalist", roundSortOrder: 2
         });
     }
@@ -1078,7 +1078,7 @@ function renderGames() {
             team1Name: t1, team1Seed: getSeedForTeam(t1),
             team2Name: t2, team2Seed: getSeedForTeam(t2),
             winner: winner ? (winner === t1.toLowerCase().trim() ? t1 : t2) : null,
-            region: "Final Four",
+            region: "Final Four", finalistRegion: "West",
             roundDisplay: "Final Four", roundKey: "Finalist", roundSortOrder: 2
         });
     }
@@ -1144,27 +1144,15 @@ function renderGames() {
                 gamesHtml += `<div class="who-picked">`;
                 for (const player of bracketData.participants) {
                     let pickedWinner = null;
-                    if (game.region === "Final Four" || game.region === "Championship") {
-                        // Cross-region games: search all regions for picks
-                        // First check the direct roundKey (Finalist/Champion)
+                    if (game.finalistRegion) {
+                        // Final Four: pick is the Finalist from the specific region
+                        const reg = player.regions.find(r => r.name === game.finalistRegion);
+                        if (reg) pickedWinner = (reg.round_winners["Finalist"] || [])[0] || null;
+                    } else if (game.region === "Championship") {
+                        // Championship: search all regions for Champion pick
                         for (const reg of player.regions) {
-                            const picks = reg.round_winners[game.roundKey] || [];
-                            const match = picks.find(p =>
-                                p.toLowerCase().trim() === game.team1Name.toLowerCase().trim() ||
-                                p.toLowerCase().trim() === game.team2Name.toLowerCase().trim()
-                            );
-                            if (match) { pickedWinner = match; break; }
-                        }
-                        // Fallback: check Final Four picks (who they had making the F4)
-                        if (!pickedWinner && game.region === "Final Four") {
-                            for (const reg of player.regions) {
-                                const f4Picks = reg.round_winners["Final Four"] || [];
-                                const match = f4Picks.find(p =>
-                                    p.toLowerCase().trim() === game.team1Name.toLowerCase().trim() ||
-                                    p.toLowerCase().trim() === game.team2Name.toLowerCase().trim()
-                                );
-                                if (match) { pickedWinner = match; break; }
-                            }
+                            const picks = reg.round_winners["Champion"] || [];
+                            if (picks.length > 0) { pickedWinner = picks[0]; break; }
                         }
                     } else {
                         const region = player.regions.find(r => r.name === game.region);
@@ -1221,24 +1209,13 @@ function renderGames() {
                 gamesHtml += `<div class="who-picked">`;
                 for (const player of bracketData.participants) {
                     let pickedWinner = null;
-                    if (game.region === "Final Four" || game.region === "Championship") {
+                    if (game.finalistRegion) {
+                        const reg = player.regions.find(r => r.name === game.finalistRegion);
+                        if (reg) pickedWinner = (reg.round_winners["Finalist"] || [])[0] || null;
+                    } else if (game.region === "Championship") {
                         for (const reg of player.regions) {
-                            const picks = reg.round_winners[game.roundKey] || [];
-                            const match = picks.find(p =>
-                                p.toLowerCase().trim() === game.team1Name.toLowerCase().trim() ||
-                                p.toLowerCase().trim() === game.team2Name.toLowerCase().trim()
-                            );
-                            if (match) { pickedWinner = match; break; }
-                        }
-                        if (!pickedWinner && game.region === "Final Four") {
-                            for (const reg of player.regions) {
-                                const f4Picks = reg.round_winners["Final Four"] || [];
-                                const match = f4Picks.find(p =>
-                                    p.toLowerCase().trim() === game.team1Name.toLowerCase().trim() ||
-                                    p.toLowerCase().trim() === game.team2Name.toLowerCase().trim()
-                                );
-                                if (match) { pickedWinner = match; break; }
-                            }
+                            const picks = reg.round_winners["Champion"] || [];
+                            if (picks.length > 0) { pickedWinner = picks[0]; break; }
                         }
                     } else {
                         const region = player.regions.find(r => r.name === game.region);
