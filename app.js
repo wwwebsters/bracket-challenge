@@ -1030,6 +1030,82 @@ function renderGames() {
         }
     }
 
+    // === FINAL FOUR (Semifinal games - cross-region) ===
+    // Standard bracket: East vs West, South vs Midwest
+    const regionMap = {};
+    for (const region of master.regions) {
+        const f4Winner = (region.round_winners["Final Four"] || [])[0] || null;
+        regionMap[region.name] = f4Winner;
+    }
+
+    // Get finalists from master bracket
+    const masterFinalists = [];
+    for (const region of master.regions) {
+        const finalists = region.round_winners["Finalist"] || [];
+        for (const f of finalists) masterFinalists.push(f.toLowerCase().trim());
+    }
+
+    // Semifinal 1: East vs West
+    if (regionMap["East"] && regionMap["West"]) {
+        const t1 = regionMap["East"];
+        const t2 = regionMap["West"];
+        const winner = masterFinalists.find(f =>
+            f === t1.toLowerCase().trim() || f === t2.toLowerCase().trim()
+        ) ? masterFinalists.find(f =>
+            f === t1.toLowerCase().trim() || f === t2.toLowerCase().trim()
+        ) : null;
+
+        allGames.push({
+            team1Name: t1, team1Seed: getSeedForTeam(t1),
+            team2Name: t2, team2Seed: getSeedForTeam(t2),
+            winner: winner ? (winner === t1.toLowerCase().trim() ? t1 : t2) : null,
+            region: "Final Four",
+            roundDisplay: "Final Four", roundKey: "Finalist", roundSortOrder: 2
+        });
+    }
+
+    // Semifinal 2: South vs Midwest
+    if (regionMap["South"] && regionMap["Midwest"]) {
+        const t1 = regionMap["South"];
+        const t2 = regionMap["Midwest"];
+        const winner = masterFinalists.find(f =>
+            f === t1.toLowerCase().trim() || f === t2.toLowerCase().trim()
+        ) ? masterFinalists.find(f =>
+            f === t1.toLowerCase().trim() || f === t2.toLowerCase().trim()
+        ) : null;
+
+        allGames.push({
+            team1Name: t1, team1Seed: getSeedForTeam(t1),
+            team2Name: t2, team2Seed: getSeedForTeam(t2),
+            winner: winner ? (winner === t1.toLowerCase().trim() ? t1 : t2) : null,
+            region: "Final Four",
+            roundDisplay: "Final Four", roundKey: "Finalist", roundSortOrder: 2
+        });
+    }
+
+    // === CHAMPIONSHIP ===
+    if (masterFinalists.length === 2) {
+        const masterChampion = [];
+        for (const region of master.regions) {
+            const champ = region.round_winners["Champion"] || [];
+            for (const c of champ) masterChampion.push(c.toLowerCase().trim());
+        }
+
+        const t1 = masterFinalists[0];
+        const t2 = masterFinalists[1];
+        const winner = masterChampion[0] || null;
+
+        allGames.push({
+            team1Name: t1.charAt(0).toUpperCase() + t1.slice(1),
+            team1Seed: getSeedForTeam(t1),
+            team2Name: t2.charAt(0).toUpperCase() + t2.slice(1),
+            team2Seed: getSeedForTeam(t2),
+            winner: winner ? winner.charAt(0).toUpperCase() + winner.slice(1) : null,
+            region: "Championship",
+            roundDisplay: "Championship", roundKey: "Champion", roundSortOrder: 1
+        });
+    }
+
     // Separate and sort
     const completed = allGames.filter(g => g.winner);
     const upcoming = allGames.filter(g => !g.winner && g.team1Name && g.team2Name);
