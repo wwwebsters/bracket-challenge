@@ -1143,13 +1143,38 @@ function renderGames() {
                 `;
                 gamesHtml += `<div class="who-picked">`;
                 for (const player of bracketData.participants) {
-                    const region = player.regions.find(r => r.name === game.region);
-                    if (!region) continue;
-                    const picks = region.round_winners[game.roundKey] || [];
-                    const pickedWinner = picks.find(p =>
-                        p.toLowerCase().trim() === game.team1Name.toLowerCase().trim() ||
-                        p.toLowerCase().trim() === game.team2Name.toLowerCase().trim()
-                    );
+                    let pickedWinner = null;
+                    if (game.region === "Final Four" || game.region === "Championship") {
+                        // Cross-region games: search all regions for picks
+                        // First check the direct roundKey (Finalist/Champion)
+                        for (const reg of player.regions) {
+                            const picks = reg.round_winners[game.roundKey] || [];
+                            const match = picks.find(p =>
+                                p.toLowerCase().trim() === game.team1Name.toLowerCase().trim() ||
+                                p.toLowerCase().trim() === game.team2Name.toLowerCase().trim()
+                            );
+                            if (match) { pickedWinner = match; break; }
+                        }
+                        // Fallback: check Final Four picks (who they had making the F4)
+                        if (!pickedWinner && game.region === "Final Four") {
+                            for (const reg of player.regions) {
+                                const f4Picks = reg.round_winners["Final Four"] || [];
+                                const match = f4Picks.find(p =>
+                                    p.toLowerCase().trim() === game.team1Name.toLowerCase().trim() ||
+                                    p.toLowerCase().trim() === game.team2Name.toLowerCase().trim()
+                                );
+                                if (match) { pickedWinner = match; break; }
+                            }
+                        }
+                    } else {
+                        const region = player.regions.find(r => r.name === game.region);
+                        if (!region) continue;
+                        const picks = region.round_winners[game.roundKey] || [];
+                        pickedWinner = picks.find(p =>
+                            p.toLowerCase().trim() === game.team1Name.toLowerCase().trim() ||
+                            p.toLowerCase().trim() === game.team2Name.toLowerCase().trim()
+                        );
+                    }
                     gamesHtml += `<span class="picker-badge" title="${player.name} picked ${pickedWinner || '?'}">${player.name}: ${pickedWinner || '?'}</span>`;
                 }
                 gamesHtml += `</div><div style="margin-bottom: 12px;"></div>`;
@@ -1195,13 +1220,35 @@ function renderGames() {
 
                 gamesHtml += `<div class="who-picked">`;
                 for (const player of bracketData.participants) {
-                    const region = player.regions.find(r => r.name === game.region);
-                    if (!region) continue;
-                    const picks = region.round_winners[game.roundKey] || [];
-                    const pickedWinner = picks.find(p =>
-                        p.toLowerCase().trim() === game.team1Name.toLowerCase().trim() ||
-                        p.toLowerCase().trim() === game.team2Name.toLowerCase().trim()
-                    );
+                    let pickedWinner = null;
+                    if (game.region === "Final Four" || game.region === "Championship") {
+                        for (const reg of player.regions) {
+                            const picks = reg.round_winners[game.roundKey] || [];
+                            const match = picks.find(p =>
+                                p.toLowerCase().trim() === game.team1Name.toLowerCase().trim() ||
+                                p.toLowerCase().trim() === game.team2Name.toLowerCase().trim()
+                            );
+                            if (match) { pickedWinner = match; break; }
+                        }
+                        if (!pickedWinner && game.region === "Final Four") {
+                            for (const reg of player.regions) {
+                                const f4Picks = reg.round_winners["Final Four"] || [];
+                                const match = f4Picks.find(p =>
+                                    p.toLowerCase().trim() === game.team1Name.toLowerCase().trim() ||
+                                    p.toLowerCase().trim() === game.team2Name.toLowerCase().trim()
+                                );
+                                if (match) { pickedWinner = match; break; }
+                            }
+                        }
+                    } else {
+                        const region = player.regions.find(r => r.name === game.region);
+                        if (!region) continue;
+                        const picks = region.round_winners[game.roundKey] || [];
+                        pickedWinner = picks.find(p =>
+                            p.toLowerCase().trim() === game.team1Name.toLowerCase().trim() ||
+                            p.toLowerCase().trim() === game.team2Name.toLowerCase().trim()
+                        );
+                    }
                     const isCorrect = pickedWinner && pickedWinner.toLowerCase().trim() === game.winner.toLowerCase().trim();
                     gamesHtml += `<span class="picker-badge ${isCorrect ? 'has-pick' : ''}" title="${player.name} picked ${pickedWinner || '?'}">${player.name}: ${pickedWinner || '?'} ${isCorrect ? '\u2713' : '\u2717'}</span>`;
                 }
