@@ -1031,7 +1031,7 @@ function renderGames() {
     }
 
     // === FINAL FOUR (Semifinal games - cross-region) ===
-    // Standard bracket: East vs West, South vs Midwest
+    // Bracket pairings: East vs South, West vs Midwest
     const regionMap = {};
     for (const region of master.regions) {
         const f4Winner = (region.round_winners["Final Four"] || [])[0] || null;
@@ -1045,10 +1045,10 @@ function renderGames() {
         for (const f of finalists) masterFinalists.push(f.toLowerCase().trim());
     }
 
-    // Semifinal 1: East vs West
-    if (regionMap["East"] && regionMap["West"]) {
+    // Semifinal 1: East vs South
+    if (regionMap["East"] && regionMap["South"]) {
         const t1 = regionMap["East"];
-        const t2 = regionMap["West"];
+        const t2 = regionMap["South"];
         const winner = masterFinalists.find(f =>
             f === t1.toLowerCase().trim() || f === t2.toLowerCase().trim()
         ) ? masterFinalists.find(f =>
@@ -1064,9 +1064,9 @@ function renderGames() {
         });
     }
 
-    // Semifinal 2: South vs Midwest
-    if (regionMap["South"] && regionMap["Midwest"]) {
-        const t1 = regionMap["South"];
+    // Semifinal 2: West vs Midwest
+    if (regionMap["West"] && regionMap["Midwest"]) {
+        const t1 = regionMap["West"];
         const t2 = regionMap["Midwest"];
         const winner = masterFinalists.find(f =>
             f === t1.toLowerCase().trim() || f === t2.toLowerCase().trim()
