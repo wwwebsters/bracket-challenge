@@ -422,10 +422,50 @@ function scoreForScenario(participant, scenario) {
 // Check if a participant can finish first (or tied) in any possible remaining outcome
 function canWin(participant, allParticipants) {
     const master = bracketData.master;
+
+    // Get F4 teams (regional winners who made the Final Four)
     const f4Teams = [];
     for (const region of master.regions) {
         const f4 = (region.round_winners["Final Four"] || []).map(t => t.toLowerCase().trim());
         f4Teams.push(...f4);
+    }
+
+    // Get Finalists (teams that won their semifinal and are in the championship)
+    const finalists = [];
+    for (const region of master.regions) {
+        const f = (region.round_winners["Finalist"] || []).map(t => t.toLowerCase().trim());
+        finalists.push(...f);
+    }
+
+    // Get Champion (if already determined)
+    const champions = [];
+    for (const region of master.regions) {
+        const c = (region.round_winners["Champion"] || []).map(t => t.toLowerCase().trim());
+        champions.push(...c);
+    }
+
+    // If champion is already determined, just compare final scores
+    if (champions.length > 0) {
+        const leaderScore = Math.max(...allParticipants.map(p => p.score));
+        return participant.score >= leaderScore;
+    }
+
+    // If both Finalists are known (semis are done), only championship remains
+    if (finalists.length === 2) {
+        const scenarios = [
+            { finalists: finalists, champion: finalists[0] },
+            { finalists: finalists, champion: finalists[1] }
+        ];
+
+        for (const scenario of scenarios) {
+            const myScore = scoreForScenario(participant, scenario);
+            const maxOther = Math.max(...allParticipants
+                .filter(p => p.name !== participant.name)
+                .map(p => scoreForScenario(p, scenario))
+            );
+            if (myScore >= maxOther) return true;
+        }
+        return false;
     }
 
     // If F4 isn't set yet, fall back to simple max possible check
@@ -434,7 +474,7 @@ function canWin(participant, allParticipants) {
         return calculateMaxPossible(participant) >= leaderScore;
     }
 
-    // Determine semi pairings from region order: East vs West, South vs Midwest
+    // Semifinal stage: determine semi pairings from region order
     // F4 winners are stored one per region in order: East, West, South, Midwest
     const semi1 = [f4Teams[0], f4Teams[1]].filter(Boolean); // East vs West
     const semi2 = [f4Teams[2], f4Teams[3]].filter(Boolean); // South vs Midwest
