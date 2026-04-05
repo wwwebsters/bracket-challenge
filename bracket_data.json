@@ -10,7 +10,7 @@
   "standings": [
     {
       "name": "Dad",
-      "score": 80
+      "score": 85
     },
     {
       "name": "Jared",
@@ -560,7 +560,7 @@
       "id": "dad",
       "name": "Dad",
       "tiebreaker": "62 - 58",
-      "score": 80,
+      "score": 85,
       "regions": [
         {
           "matchups": [
@@ -4226,5 +4226,5 @@
     }
   ],
   "today_results": [],
-  "last_updated": "2026-04-05T05:55:51Z"
+  "last_updated": "2026-04-05T09:45:37Z"
 }

@@ -227,19 +227,44 @@ def update_master_bracket(bracket_data, completed_games):
 def recalculate_scores(bracket_data):
     master = bracket_data["master"]
     scoring_values = list(bracket_data["scoring"].values())
-    round_keys = ["Round of 32", "Sweet 16", "Elite 8", "Final Four", "Finalist", "Champion"]
+    # Regional rounds (checked per-region)
+    regional_round_keys = ["Round of 32", "Sweet 16", "Elite 8", "Final Four"]
+    # Cross-regional rounds (Finalist = semifinal winners, Champion = title winner)
+    cross_regional_keys = ["Finalist", "Champion"]
+
     for participant in bracket_data["participants"]:
         total_score = 0
+
+        # Score regional rounds (compare within each region)
         for ri in range(4):
             master_region = master["regions"][ri]
             pick_region = participant["regions"][ri]
-            for rki, rk in enumerate(round_keys):
+            for rki, rk in enumerate(regional_round_keys):
                 master_winners = [normalize_team_name(w) for w in master_region["round_winners"].get(rk, [])]
                 pick_winners = pick_region["round_winners"].get(rk, [])
                 pts = scoring_values[rki] if rki < len(scoring_values) else 0
                 for pick in pick_winners:
                     if normalize_team_name(pick) in master_winners:
                         total_score += pts
+
+        # Score cross-regional rounds (Finalist and Champion)
+        # Gather all master Finalists/Champions across all regions
+        for cri, crk in enumerate(cross_regional_keys):
+            pts_index = len(regional_round_keys) + cri  # Finalist=4, Champion=5
+            pts = scoring_values[pts_index] if pts_index < len(scoring_values) else 0
+
+            # Get all actual winners from master (across all regions)
+            all_master_winners = []
+            for mr in master["regions"]:
+                all_master_winners.extend([normalize_team_name(w) for w in mr["round_winners"].get(crk, [])])
+
+            # Get all participant picks (across all regions)
+            for pr in participant["regions"]:
+                pick_winners = pr["round_winners"].get(crk, [])
+                for pick in pick_winners:
+                    if normalize_team_name(pick) in all_master_winners:
+                        total_score += pts
+
         participant["score"] = total_score
     sorted_participants = sorted(bracket_data["participants"], key=lambda p: p["score"], reverse=True)
     bracket_data["standings"] = [{"name": p["name"], "score": p["score"]} for p in sorted_participants]
