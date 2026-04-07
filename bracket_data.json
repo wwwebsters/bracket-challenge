@@ -10,7 +10,7 @@
   "standings": [
     {
       "name": "Dad",
-      "score": 85
+      "score": 91
     },
     {
       "name": "Jared",
@@ -549,6 +549,9 @@
           ],
           "Finalist": [
             "Michigan"
+          ],
+          "Champion": [
+            "Michigan"
           ]
         },
         "name": "Midwest"
@@ -560,7 +563,7 @@
       "id": "dad",
       "name": "Dad",
       "tiebreaker": "62 - 58",
-      "score": 85,
+      "score": 91,
       "regions": [
         {
           "matchups": [
@@ -4226,5 +4229,5 @@
     }
   ],
   "today_results": [],
-  "last_updated": "2026-04-05T09:45:37Z"
+  "last_updated": "2026-04-07T05:58:50Z"
 }
