@@ -369,6 +369,25 @@ nav {
     margin-bottom: 32px;
 }
 
+/* Tournament Champion Banner */
+.tournament-winner-banner {
+    text-align: center;
+    padding: 30px 20px;
+    margin-bottom: 24px;
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(249, 115, 22, 0.1));
+    border: 2px solid var(--gold);
+    border-radius: 16px;
+    animation: winner-glow 3s ease-in-out infinite;
+}
+@keyframes winner-glow {
+    0%, 100% { box-shadow: 0 0 20px rgba(251, 191, 36, 0.2); }
+    50% { box-shadow: 0 0 40px rgba(251, 191, 36, 0.4); }
+}
+.winner-trophy { font-size: 48px; margin-bottom: 8px; }
+.winner-title { font-size: 14px; letter-spacing: 3px; color: var(--gold); font-weight: 700; margin-bottom: 8px; }
+.winner-name { font-size: 36px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
+.winner-score { font-size: 18px; color: var(--text-dim); }
+
 .leader-card {
     background: var(--bg-card);
     border: 1px solid var(--border);

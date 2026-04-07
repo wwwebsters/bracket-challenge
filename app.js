@@ -117,13 +117,13 @@ async function loadApp() {
     try {
         const resp = await fetch("bracket_data.json?t=" + Date.now());
         bracketData = await resp.json();
-        renderDailyRecap();
+        // renderDailyRecap(); // tournament over
         renderLeaderboard();
-        // renderBracketBustedMeter();
-        renderEliminationTracker();
+        // renderBracketBustedMeter(); // tournament over
+        // renderEliminationTracker(); // tournament over
         renderBracketSelector();
         renderH2HSelectors();
-        renderGames();
+        // renderGames(); // tournament over
         renderStats();
         renderRegionMiniLeaderboards();
         renderScoreChart();
@@ -197,10 +197,20 @@ function renderLeaderboard() {
         p.rank = rank;
     });
 
+    // Tournament champion banner
+    const winner = participants[0];
+    const winnerBanner = `
+        <div class="tournament-winner-banner">
+            <div class="winner-trophy">&#127942;</div>
+            <div class="winner-title">2026 BRACKET CHALLENGE CHAMPION</div>
+            <div class="winner-name">${winner.name}</div>
+            <div class="winner-score">${winner.score} points</div>
+        </div>
+    `;
+
     const cardsHtml = participants.slice(0, 3).map((p, i) => {
         const medals = ["&#129351;", "&#129352;", "&#129353;"];
         const classes = ["gold", "silver", "bronze"];
-        const maxPossible = calculateMaxPossible(p);
         return `
             <div class="leader-card ${classes[i]}">
                 <div class="leader-rank">${medals[i]}</div>
@@ -208,16 +218,15 @@ function renderLeaderboard() {
                 <div class="leader-score">${p.score}</div>
                 <div class="leader-score-label">points</div>
                 <div class="leader-tiebreaker">
-                    Tiebreaker: ${p.tiebreaker} &bull; Max possible: ${maxPossible}
+                    Tiebreaker: ${p.tiebreaker}
                 </div>
             </div>
         `;
     }).join("");
-    document.getElementById("leaderboard-cards").innerHTML = cardsHtml;
+    document.getElementById("leaderboard-cards").innerHTML = winnerBanner + cardsHtml;
 
     const tableHtml = participants.map(p => {
         const rb = getParticipantRoundBreakdown(p);
-        const maxPossible = calculateMaxPossible(p);
         const rankClass = p.rank <= 3 ? `rank-${p.rank}` : "";
         return `
             <tr>
@@ -230,7 +239,6 @@ function renderLeaderboard() {
                 <td class="round-cell">${formatRoundScore(rb.f4)}</td>
                 <td class="round-cell">${formatRoundScore(rb.finals)}</td>
                 <td class="round-cell">${formatRoundScore(rb.champ)}</td>
-                <td class="max-possible">${maxPossible}</td>
                 <td style="color: var(--text-dim); font-size: 13px;">${p.tiebreaker}</td>
             </tr>
         `;
